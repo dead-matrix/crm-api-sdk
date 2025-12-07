@@ -89,5 +89,6 @@ class InvoiceInfoResult:
     items: List[dict]
     provider: str
     pay_link: Optional[str]
+    pay_url: Optional[str]
     date_create: Optional[datetime]
 

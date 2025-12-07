@@ -52,6 +52,7 @@ class PaymentsAPI:
     async def issue_invoice(self, data: InvoiceIssueInput) -> InvoiceIssueResult:
         d = await self._post("/api/payments/invoice/issue", data.model_dump(), need_auth=True)
         return InvoiceIssueResult(pay_url=str(d["pay_url"]), status=str(d["status"]))
+
     async def get_invoice_info(self, uuid: str) -> InvoiceInfoResult:
         """
         Проверка существования и получение информации о платеже по UUID.
@@ -71,6 +72,7 @@ class PaymentsAPI:
             items=d.get("items") or [],
             provider=str(d["provider"]),
             pay_link=d.get("pay_link"),
+            pay_url=d.get("pay_url"),
             date_create=parse_dt(d.get("date_create")),
         )
 
