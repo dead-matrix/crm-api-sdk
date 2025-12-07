@@ -15,6 +15,7 @@ from ..models import (
     ConfirmPaymentResult,
     RefundInput,
     RefundResult,
+    InvoiceInfoResult,
 )
 from ..utils import parse_dt
 
@@ -51,6 +52,27 @@ class PaymentsAPI:
     async def issue_invoice(self, data: InvoiceIssueInput) -> InvoiceIssueResult:
         d = await self._post("/api/payments/invoice/issue", data.model_dump(), need_auth=True)
         return InvoiceIssueResult(pay_url=str(d["pay_url"]), status=str(d["status"]))
+    async def get_invoice_info(self, uuid: str) -> InvoiceInfoResult:
+        """
+        Проверка существования и получение информации о платеже по UUID.
+        Не обращается к провайдеру - только данные из БД.
+        Можно использовать для валидации UUID до указания email и выставления счета.
+        """
+        d = await self._get(f"/api/payments/invoice/{uuid}", params=None, need_auth=True)
+        return InvoiceInfoResult(
+            uuid=str(d["uuid"]),
+            status=str(d["status"]),
+            status_ru=str(d["status_ru"]),
+            client_id=int(d["client_id"]),
+            amount_minor=int(d["amount_minor"]),
+            currency=str(d.get("currency", "RUB")),
+            discount_percent=d.get("discount_percent"),
+            description=str(d["description"]),
+            items=d.get("items") or [],
+            provider=str(d["provider"]),
+            pay_link=d.get("pay_link"),
+            date_create=parse_dt(d.get("date_create")),
+        )
 
     async def get_payments(self, user_id: int) -> List[PaymentHistoryItem]:
         arr = await self._get(f"/api/payments/{user_id}", params=None, need_auth=True)

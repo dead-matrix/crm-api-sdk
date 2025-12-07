@@ -38,6 +38,7 @@ from .payments import (
     PaymentHistoryItem,
     ConfirmPaymentResult,
     RefundResult,
+    InvoiceInfoResult,
 )
 
 # Prompt
@@ -117,6 +118,7 @@ __all__ = [
     "PaymentHistoryItem",
     "ConfirmPaymentResult",
     "RefundResult",
+    "InvoiceInfoResult",
     # Prompt
     "PromptUpdateResult",
     # Proxy

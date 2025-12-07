@@ -76,3 +76,18 @@ class RefundResult:
     message: str
     status: Optional[str] = None
 
+@dataclass
+class InvoiceInfoResult:
+    uuid: str
+    status: str
+    status_ru: str
+    client_id: int
+    amount_minor: int
+    currency: str
+    discount_percent: Optional[int]
+    description: str
+    items: List[dict]
+    provider: str
+    pay_link: Optional[str]
+    date_create: Optional[datetime]
+
