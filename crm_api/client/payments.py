@@ -76,8 +76,9 @@ class PaymentsAPI:
             date_create=parse_dt(d.get("date_create")),
         )
 
-    async def get_payments(self, user_id: int) -> List[PaymentHistoryItem]:
-        arr = await self._get(f"/api/payments/{user_id}", params=None, need_auth=True)
+    async def get_payments(self, user_id: Optional[int] = None) -> List[PaymentHistoryItem]:
+        params = {"user_id": user_id} if user_id is not None else None
+        arr = await self._get("/api/payments", params=params, need_auth=True)
         items: List[PaymentHistoryItem] = []
         for p in arr or []:
             activation: List[ActivationLink] = []
