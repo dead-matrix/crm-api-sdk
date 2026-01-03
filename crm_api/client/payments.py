@@ -56,8 +56,7 @@ class PaymentsAPI:
     async def get_invoice_info(self, uuid: str) -> InvoiceInfoResult:
         """
         Проверка существования и получение информации о платеже по UUID.
-        Не обращается к провайдеру - только данные из БД.
-        Можно использовать для валидации UUID до указания email и выставления счета.
+        Автоматически запрашивает актуальный статус у провайдера для выставленных платежей.
         """
         d = await self._get(f"/api/payments/invoice/{uuid}", params=None, need_auth=True)
         return InvoiceInfoResult(
@@ -65,18 +64,28 @@ class PaymentsAPI:
             status=str(d["status"]),
             status_ru=str(d["status_ru"]),
             client_id=int(d["client_id"]),
+            client_email=d.get("client_email"),
+            referer_id=d.get("referer_id"),
+            staff_id=d.get("staff_id"),
             amount_minor=int(d["amount_minor"]),
+            fx_rate_rub_usd=d.get("fx_rate_rub_usd"),
             currency=str(d.get("currency", "RUB")),
             discount_percent=d.get("discount_percent"),
             description=str(d["description"]),
             items=d.get("items") or [],
             provider=str(d["provider"]),
             pay_link=d.get("pay_link"),
-            pay_url=d.get("pay_url"),
             date_create=parse_dt(d.get("date_create")),
+            date_invoiced=parse_dt(d.get("date_invoiced")),
+            date_paid=parse_dt(d.get("date_paid")),
         )
 
     async def get_payments(self, user_id: Optional[int] = None) -> List[PaymentHistoryItem]:
+        """
+        История платежей.
+        - Если user_id передан — возвращает платежи конкретного пользователя.
+        - Если user_id не передан — возвращает все платежи.
+        """
         params = {"user_id": user_id} if user_id is not None else None
         arr = await self._get("/api/payments", params=params, need_auth=True)
         items: List[PaymentHistoryItem] = []
@@ -94,17 +103,23 @@ class PaymentsAPI:
             items.append(
                 PaymentHistoryItem(
                     uuid=str(p["uuid"]),
+                    status=str(p.get("status")),
+                    status_ru=str(p.get("status_ru", "")),
+                    client_id=int(p.get("client_id", 0)),
+                    client_email=p.get("client_email"),
+                    referer_id=p.get("referer_id"),
+                    staff_id=p.get("staff_id"),
+                    amount_minor=int(p.get("amount_minor", 0)),
+                    fx_rate_rub_usd=p.get("fx_rate_rub_usd"),
+                    currency=str(p.get("currency", "RUB")),
+                    discount_percent=p.get("discount_percent"),
+                    description=p.get("description"),
+                    items=p.get("items") or [],
+                    provider=p.get("provider"),
+                    pay_link=p.get("pay_link"),
                     date_create=parse_dt(p.get("date_create")),
                     date_invoiced=parse_dt(p.get("date_invoiced")),
                     date_paid=parse_dt(p.get("date_paid")),
-                    status=str(p.get("status")),
-                    amount_minor=int(p.get("amount_minor", 0)),
-                    discount_percent=int(p.get("discount_percent", 0)),
-                    currency=str(p.get("currency", "RUB")),
-                    items=p.get("items") or [],
-                    client_email=p.get("client_email"),
-                    pay_url=p.get("pay_url"),
-                    provider=p.get("provider"),
                     activation=activation,
                 )
             )

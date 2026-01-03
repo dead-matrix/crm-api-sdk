@@ -48,17 +48,23 @@ class ActivationLink:
 @dataclass
 class PaymentHistoryItem:
     uuid: str
+    status: str
+    status_ru: str
+    client_id: int
+    client_email: Optional[str]
+    referer_id: Optional[int]
+    staff_id: Optional[int]
+    amount_minor: int
+    fx_rate_rub_usd: Optional[float]
+    currency: str
+    discount_percent: Optional[int]
+    description: Optional[str]
+    items: List[dict]
+    provider: Optional[str]
+    pay_link: Optional[str]
     date_create: Optional[datetime]
     date_invoiced: Optional[datetime]
     date_paid: Optional[datetime]
-    status: str
-    amount_minor: int
-    discount_percent: Optional[int]
-    currency: str
-    items: List[dict]
-    client_email: Optional[str]
-    pay_url: Optional[str]
-    provider: Optional[str]
     activation: List[ActivationLink]
 
 
@@ -82,13 +88,18 @@ class InvoiceInfoResult:
     status: str
     status_ru: str
     client_id: int
+    client_email: Optional[str]
+    referer_id: Optional[int]
+    staff_id: Optional[int]
     amount_minor: int
+    fx_rate_rub_usd: Optional[float]
     currency: str
     discount_percent: Optional[int]
     description: str
     items: List[dict]
     provider: str
     pay_link: Optional[str]
-    pay_url: Optional[str]
     date_create: Optional[datetime]
+    date_invoiced: Optional[datetime]
+    date_paid: Optional[datetime]
 
