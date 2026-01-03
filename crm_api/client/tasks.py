@@ -2,12 +2,26 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..models import TaskListItem, TaskInfoResult
+from ..models import TaskListItem, TaskInfoResult, ActiveTasksResult
 from ..utils import parse_content_disposition
 
 
 class TasksAPI:
     # --------------- Tasks ---------------
+
+    async def get_active_tasks(self, user_id: int) -> ActiveTasksResult:
+        """
+        GET /api/tasks/active — возвращает текстовое описание активных задач пользователя.
+
+        Args:
+            user_id: ID пользователя Telegram (>= 1)
+
+        Returns:
+            ActiveTasksResult с HTML-форматированным текстом активных задач
+        """
+        params = {"user_id": int(user_id)}
+        d = await self._get("/api/tasks/active", params=params, need_auth=True)
+        return ActiveTasksResult(text=str(d.get("text", "")))
 
     async def tasks_types(self, user_id: int, bot_id: int) -> Dict[str, str]:
         d = await self._get(

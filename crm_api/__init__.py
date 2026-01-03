@@ -25,6 +25,8 @@ from .models import (
     StatusItem,
     StatusesResult,
     ChangeStatusResult,
+    DialogSearchItem,
+    DialogSearchResult,
     NoteItem,
     NoteStaff,
     # Payments
@@ -57,6 +59,8 @@ from .models import (
     CreateUserResult,
     UpdateUserResult,
     AddAccessResult,
+    ExtendAccessResult,
+    ExtendAiLimitResult,
     # Subscriptions
     AccessPaymentRef,
     AccessStaffRef,
@@ -68,10 +72,12 @@ from .models import (
     TaskListItem,
     TaskInfoResult,
     TaskLogResult,
+    ActiveTasksResult,
     # Scripts
     ScriptItem,
     ScriptFull,
     PriceMediaItem,
+    ToolsMediaItem,
     ToolsMediaResult,
 )
 from .exceptions import (
@@ -111,6 +117,8 @@ __all__ = [
     "StatusItem",
     "StatusesResult",
     "ChangeStatusResult",
+    "DialogSearchItem",
+    "DialogSearchResult",
     "NoteItem",
     "NoteStaff",
     # Payments
@@ -143,6 +151,8 @@ __all__ = [
     "CreateUserResult",
     "UpdateUserResult",
     "AddAccessResult",
+    "ExtendAccessResult",
+    "ExtendAiLimitResult",
     # Subscriptions
     "AccessPaymentRef",
     "AccessStaffRef",
@@ -154,10 +164,12 @@ __all__ = [
     "TaskListItem",
     "TaskInfoResult",
     "TaskLogResult",
+    "ActiveTasksResult",
     # Scripts
     "ScriptItem",
     "ScriptFull",
     "PriceMediaItem",
+    "ToolsMediaItem",
     "ToolsMediaResult",
     # Exceptions
     "SDKError",

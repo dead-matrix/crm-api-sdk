@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from ..exceptions import ConfigError
 from ..models import (
@@ -9,6 +9,8 @@ from ..models import (
     StatusesResult,
     ChangeStatusResult,
     TransferDialogResult,
+    DialogSearchItem,
+    DialogSearchResult,
 )
 
 
@@ -56,4 +58,46 @@ class DialogsAPI:
         payload = {"user_id": int(user_id), "to_department": str(to_department)}
         d = await self._post("/api/dialogs/transfer", payload, need_auth=True)
         return TransferDialogResult(transferred=bool(d.get("transferred")))
+
+    async def search_dialogs(
+        self, department: str, q: str, offset: int = 0
+    ) -> DialogSearchResult:
+        """
+        GET /api/dialogs/{department}/search — поиск диалогов по строке.
+
+        Ищет совпадения в user_id, full_name и username.
+
+        Args:
+            department: Название отдела (например: "sales")
+            q: Поисковый запрос (1-256 символов)
+            offset: Смещение для пагинации (>= 0, по умолчанию 0)
+
+        Returns:
+            DialogSearchResult с найденными диалогами и информацией о пагинации
+        """
+        if not q or not q.strip():
+            raise ConfigError("q (search query) must not be empty")
+        if offset < 0:
+            raise ConfigError("offset must be non-negative integer")
+
+        params = {"q": str(q), "offset": int(offset)}
+        d = await self._get(f"/api/dialogs/{department}/search", params=params, need_auth=True)
+
+        dialogs: List[DialogSearchItem] = []
+        for r in d.get("dialogs") or []:
+            dialogs.append(
+                DialogSearchItem(
+                    user_id=int(r["user_id"]),
+                    full_name=r.get("full_name"),
+                    has_active_subscription=bool(r.get("has_active_subscription")),
+                    status=str(r.get("status", "")),
+                    status_color=str(r.get("status_color", "")),
+                )
+            )
+
+        return DialogSearchResult(
+            dialogs=dialogs,
+            limit=int(d.get("limit", 50)),
+            offset=int(d.get("offset", 0)),
+        )
 

@@ -20,3 +20,9 @@ class TaskLogResult:
     filename: Optional[str]
     content: bytes  # text file content stored as bytes for generality
 
+
+@dataclass
+class ActiveTasksResult:
+    """Result of GET /api/tasks/active."""
+    text: str  # HTML-formatted text with active tasks info
+

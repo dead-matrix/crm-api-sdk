@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from ..models import ScriptItem, ScriptFull, PriceMediaItem, ToolsMediaResult
+from ..models import ScriptItem, ScriptFull, PriceMediaItem, ToolsMediaItem, ToolsMediaResult
 
 
 class ScriptsAPI:
@@ -70,17 +70,21 @@ class ScriptsAPI:
         data = await self._post("/api/scripts/price", {"options": options}, need_auth=True)
         return [PriceMediaItem(text=item["text"], media=item["media"]) for item in data]
 
-    async def scripts_tools(self, options: List[int]) -> ToolsMediaResult:
+    async def scripts_tools(self, options: List[int], bot_id: int) -> ToolsMediaResult:
         """
         Получить видео с обзорами для выбранных опций.
-        
+
         Args:
             options: Список ID опций (от 1 до 5 штук).
-                     0=Масслукинг, 1=Отметки в истории, 2=Комментинг, 
+                     0=Масслукинг, 1=Отметки в истории, 2=Комментинг,
                      3=Инвайтинг, 4=Граббер
-        
+            bot_id: ID Telegram бота для получения file_id видео.
+                    Поддерживаемые значения: 7662403109, 8002165573
+
         Returns:
-            Объект с текстом (базовый + ссылки на обзоры) и массивом ссылок на видео.
+            Объект с текстом (базовый + ссылки на обзоры) и массивом объектов медиа,
+            содержащих video_url и file_id для отправки через Telegram.
         """
-        data = await self._post("/api/scripts/tools", {"options": options}, need_auth=True)
-        return ToolsMediaResult(text=data["text"], media=data["media"])
+        data = await self._post("/api/scripts/tools", {"options": options, "bot_id": bot_id}, need_auth=True)
+        media_items = [ToolsMediaItem(video_url=item["video_url"], file_id=item["file_id"]) for item in data["media"]]
+        return ToolsMediaResult(text=data["text"], media=media_items)

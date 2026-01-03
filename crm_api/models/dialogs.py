@@ -36,3 +36,21 @@ class StatusesResult:
 class ChangeStatusResult:
     status: str
 
+
+@dataclass
+class DialogSearchItem:
+    """Single dialog item from search results."""
+    user_id: int
+    full_name: Optional[str]
+    has_active_subscription: bool
+    status: str
+    status_color: str
+
+
+@dataclass
+class DialogSearchResult:
+    """Result of GET /api/dialogs/{department}/search."""
+    dialogs: List[DialogSearchItem]
+    limit: int
+    offset: int
+

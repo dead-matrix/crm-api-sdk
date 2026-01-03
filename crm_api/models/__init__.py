@@ -25,7 +25,7 @@ from .accounts import (
 # Catalog/Departments/Dialogs/Notes
 from .catalog import ProductEntry, CategoryBucket
 from .departments import DepartmentItem
-from .dialogs import DialogItem, TransferDialogResult, StatusItem, StatusesResult, ChangeStatusResult
+from .dialogs import DialogItem, TransferDialogResult, StatusItem, StatusesResult, ChangeStatusResult, DialogSearchItem, DialogSearchResult
 from .notes import NoteItem, NoteStaff
 
 # Payments
@@ -63,6 +63,8 @@ from .users import (
     CreateUserResult,
     UpdateUserResult,
     AddAccessResult,
+    ExtendAccessResult,
+    ExtendAiLimitResult,
 )
 
 # Subscriptions
@@ -76,10 +78,10 @@ from .subscriptions import (
 )
 
 # Tasks
-from .tasks import TaskListItem, TaskInfoResult, TaskLogResult
+from .tasks import TaskListItem, TaskInfoResult, TaskLogResult, ActiveTasksResult
 
 # Scripts
-from .scripts import ScriptItem, ScriptFull, PriceMediaItem, ToolsMediaResult
+from .scripts import ScriptItem, ScriptFull, PriceMediaItem, ToolsMediaItem, ToolsMediaResult
 
 __all__ = [
     # Inputs
@@ -107,6 +109,8 @@ __all__ = [
     "StatusItem",
     "StatusesResult",
     "ChangeStatusResult",
+    "DialogSearchItem",
+    "DialogSearchResult",
     "NoteItem",
     "NoteStaff",
     # Payments
@@ -139,6 +143,8 @@ __all__ = [
     "CreateUserResult",
     "UpdateUserResult",
     "AddAccessResult",
+    "ExtendAccessResult",
+    "ExtendAiLimitResult",
     # Subscriptions
     "AccessPaymentRef",
     "AccessStaffRef",
@@ -150,10 +156,12 @@ __all__ = [
     "TaskListItem",
     "TaskInfoResult",
     "TaskLogResult",
+    "ActiveTasksResult",
     # Scripts
     "ScriptItem",
     "ScriptFull",
     "PriceMediaItem",
+    "ToolsMediaItem",
     "ToolsMediaResult",
 ]
 

@@ -28,7 +28,14 @@ class PriceMediaItem:
 
 
 @dataclass
+class ToolsMediaItem:
+    """Элемент медиа в ответе tools - URL видео и Telegram file_id."""
+    video_url: str
+    file_id: str
+
+
+@dataclass
 class ToolsMediaResult:
-    """Результат tools - текст и массив ссылок на видео."""
+    """Результат tools - текст и массив объектов с видео."""
     text: str
-    media: List[str]
+    media: List[ToolsMediaItem]

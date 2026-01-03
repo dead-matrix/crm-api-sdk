@@ -49,3 +49,17 @@ class AddAccessResult:
     action_date: Optional[datetime]
     access_end: Optional[datetime]
 
+
+@dataclass
+class ExtendAccessResult:
+    """Result of POST /api/users/{user_id}/access/extend."""
+    user_id: int
+    access_end: Optional[datetime]
+
+
+@dataclass
+class ExtendAiLimitResult:
+    """Result of POST /api/users/{user_id}/ai-limit/extend."""
+    previous_ai_limit: int
+    ai_limit: int
+

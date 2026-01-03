@@ -10,6 +10,8 @@ from ..models import (
     UpdateUserResult,
     UserBotInfo,
     GetUserResult,
+    ExtendAccessResult,
+    ExtendAiLimitResult,
 )
 from ..utils import parse_dt
 
@@ -58,7 +60,54 @@ class UsersAPI:
             bots_info=bots_info,
         )
 
+    async def extend_user_access(self, user_id: int, bot_id: int, days: int) -> ExtendAccessResult:
+        """
+        POST /api/users/{user_id}/access/extend — добавляет дни доступа пользователю.
 
+        Args:
+            user_id: ID пользователя Telegram (>= 1)
+            bot_id: ID бота (1 = MainBot, 3 = Poster)
+            days: Количество дней для добавления (>= 1)
 
+        Returns:
+            ExtendAccessResult с user_id и новой датой окончания доступа
+        """
+        if user_id <= 0:
+            raise ConfigError("user_id must be positive integer")
+        if bot_id <= 0:
+            raise ConfigError("bot_id must be positive integer")
+        if days <= 0:
+            raise ConfigError("days must be positive integer")
 
+        params = {"bot_id": int(bot_id), "days": int(days)}
+        data = await self._post(f"/api/users/{user_id}/access/extend", None, need_auth=True, params=params)
+        return ExtendAccessResult(
+            user_id=int(data["user_id"]),
+            access_end=parse_dt(data.get("access_end")),
+        )
+
+    async def extend_ai_limit(self, user_id: int, millions: int) -> ExtendAiLimitResult:
+        """
+        POST /api/users/{user_id}/ai-limit/extend — расширяет AI квоту пользователю.
+
+        Добавляет указанное количество миллионов символов к текущему лимиту ai_limit.
+
+        Args:
+            user_id: ID пользователя Telegram (>= 1)
+            millions: Количество миллионов символов для добавления (>= 1)
+
+        Returns:
+            ExtendAiLimitResult с предыдущим и новым значением ai_limit
+        """
+        if user_id <= 0:
+            raise ConfigError("user_id must be positive integer")
+        if millions <= 0:
+            raise ConfigError("millions must be positive integer")
+
+        params = {"millions": int(millions)}
+        data = await self._post(f"/api/users/{user_id}/ai-limit/extend", None, need_auth=True, params=params)
+        return ExtendAiLimitResult(
+            previous_ai_limit=int(data["previous_ai_limit"]),
+            ai_limit=int(data["ai_limit"]),
+        )
 
