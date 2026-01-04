@@ -71,7 +71,7 @@ class InvoiceDraftInput(BaseModel):
     product_ids: List[int] = Field(min_length=1)
     discount_percent: int = Field(ge=0, le=90)
     months: int = Field(ge=1)
-    provider: Literal["yookassa", "cryptocloud"]
+    provider: Literal["yookassa", "cryptocloud", "heleket"]
 
 
 class InvoiceIssueInput(BaseModel):
