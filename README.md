@@ -31,6 +31,38 @@ async with CRMApiClient(
 
 Больше примеров см. в папке `examples/`.
 
+## Платёжные провайдеры
+
+SDK поддерживает те же провайдеры, что и CRM API — они указываются через
+типизированный `Literal` (pydantic провалидирует значение ещё до HTTP-запроса):
+
+```python
+from crm_api import InvoiceDraftInput, PaymentProvider
+
+inp = InvoiceDraftInput(
+    client_id=123,
+    product_ids=[1, 2],
+    discount_percent=10,
+    months=1,
+    provider="platega",   # yookassa | cryptocloud | heleket | platega
+)
+```
+
+`PaymentProvider` — публичный тип, можно импортировать напрямую:
+
+```python
+from typing import get_args
+from crm_api import PaymentProvider
+print(get_args(PaymentProvider))
+# ('yookassa', 'cryptocloud', 'heleket', 'platega')
+```
+
+## Changelog
+
+- **0.2.0** — добавлен `platega` в `InvoiceDraftInput.provider`; экспортирован тип
+  `PaymentProvider`.
+- **0.1.0** — первоначальный релиз.
+
 ## Примечания
 
 - SDK не загружает `.env`. Если вам удобно хранить настройки в `.env`, загружайте их в своём скрипте и передавайте в конструктор клиента.

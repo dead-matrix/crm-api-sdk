@@ -66,12 +66,17 @@ class PaymentsCalculateInput(BaseModel):
     months: int = Field(ge=1)
 
 
+# Провайдеры, которые CRM API умеет принимать в draft.
+# Держим как отдельный Literal — удобнее импортировать и документировать.
+PaymentProvider = Literal["yookassa", "cryptocloud", "heleket", "platega"]
+
+
 class InvoiceDraftInput(BaseModel):
     client_id: int = Field(ge=1)
     product_ids: List[int] = Field(min_length=1)
     discount_percent: int = Field(ge=0, le=90)
     months: int = Field(ge=1)
-    provider: Literal["yookassa", "cryptocloud", "heleket"]
+    provider: PaymentProvider
 
 
 class InvoiceIssueInput(BaseModel):

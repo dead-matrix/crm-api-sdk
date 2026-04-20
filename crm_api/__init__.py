@@ -2,6 +2,7 @@ from .client import CRMApiClient
 from .models import (
     # Inputs
     ActionType,
+    PaymentProvider,
     CreateUserInput,
     UpdateUserInput,
     AddAccessInput,
@@ -94,6 +95,7 @@ __all__ = [
     "CRMApiClient",
     # Inputs
     "ActionType",
+    "PaymentProvider",
     "CreateUserInput",
     "UpdateUserInput",
     "AddAccessInput",

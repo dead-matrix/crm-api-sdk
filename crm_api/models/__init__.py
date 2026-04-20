@@ -3,6 +3,7 @@
 # Inputs
 from .inputs import (
     ActionType,
+    PaymentProvider,
     CreateUserInput,
     UpdateUserInput,
     AddAccessInput,
@@ -86,6 +87,7 @@ from .scripts import ScriptItem, ScriptFull, PriceMediaItem, ToolsMediaItem, Too
 __all__ = [
     # Inputs
     "ActionType",
+    "PaymentProvider",
     "CreateUserInput",
     "UpdateUserInput",
     "AddAccessInput",

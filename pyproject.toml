@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "crm-api-sdk"
-version = "0.1.0"
+version = "0.2.0"
 description = "Asynchronous Python SDK for a CRM API."
 authors = [{ name = "Matrix" }]
 requires-python = ">=3.10"

@@ -104,7 +104,8 @@ class TestPaymentsAPI:
             }
         ]
         routes = {
-            "GET /api/payments/{user_id}": lambda req: success_response(mock_data),
+            # В текущей версии SDK user_id уходит через query string.
+            "GET /api/payments": lambda req: success_response(mock_data),
         }
         async with client_factory(routes) as client:
             result = await client.get_payments(user_id=123)
@@ -148,6 +149,69 @@ class TestPaymentsAPI:
             assert result.uuid == "pay-001"
             assert result.allowed is True
             assert result.message == "Refund processed"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("provider", ["yookassa", "cryptocloud", "heleket", "platega"])
+    async def test_create_invoice_draft_all_providers(self, client_factory, provider):
+        """InvoiceDraftInput принимает все 4 провайдера + передаёт их в body."""
+        mock_data = {
+            "uuid": "inv-" + provider,
+            "pay_link": f"https://pay.example.com/inv-{provider}",
+            "status": "draft",
+        }
+        captured_body: dict = {}
+
+        def _handler(req):
+            import json as _json
+            try:
+                captured_body.update(_json.loads(req.content))
+            except Exception:
+                pass
+            return success_response(mock_data)
+
+        routes = {"POST /api/payments/invoice/draft": _handler}
+        async with client_factory(routes) as client:
+            inp = InvoiceDraftInput(
+                client_id=123, product_ids=[1], discount_percent=0, months=1, provider=provider,
+            )
+            result = await client.create_invoice_draft(inp)
+            assert result.status == "draft"
+
+        assert captured_body.get("provider") == provider
+
+    @pytest.mark.asyncio
+    async def test_invoice_draft_rejects_unknown_provider(self):
+        """Literal должен отсекать провайдеров, которых CRM не поддерживает."""
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            InvoiceDraftInput(
+                client_id=1, product_ids=[1], discount_percent=0, months=1,
+                provider="stripe",  # не в whitelist
+            )
+
+    @pytest.mark.asyncio
+    async def test_payment_provider_literal_exported(self):
+        """PaymentProvider должен быть публичным типом SDK."""
+        from crm_api import PaymentProvider
+        from typing import get_args
+        assert set(get_args(PaymentProvider)) == {"yookassa", "cryptocloud", "heleket", "platega"}
+
+    @pytest.mark.asyncio
+    async def test_issue_invoice_works_for_platega_response(self, client_factory):
+        """После issue для platega витрина получает pay_url от Platega."""
+        mock_data = {
+            "pay_url": "https://app.platega.io/checkout/tx-abc-123",
+            "status": "invoiced",
+        }
+        routes = {"POST /api/payments/invoice/issue": lambda req: success_response(mock_data)}
+        async with client_factory(routes) as client:
+            inp = InvoiceIssueInput(
+                uuid="inv-12345678-abcd-1234-efgh",
+                client_email="buyer@example.com",
+            )
+            result = await client.issue_invoice(inp)
+            assert result.status == "invoiced"
+            assert "platega.io" in result.pay_url
 
     @pytest.mark.asyncio
     async def test_refund_payment_without_payload(self, client_factory):
