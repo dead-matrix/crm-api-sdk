@@ -26,8 +26,41 @@ class GetUserResult:
 
 @dataclass
 class CreateUserResult:
-    """Result of POST /api/users."""
+    """
+    Result of POST /api/users (идемпотентный).
+
+    Если регистрация (user_id, bot_id) уже существовала — `created=False`,
+    поля заполнены существующими данными без побочных эффектов.
+    Иначе — `created=True`, поля заполнены созданной записью.
+    """
     created: bool
+    user_id: int
+    full_name: str
+    username: Optional[str]
+    bot_id: int
+    refer: Optional[str]
+    date_reg: Optional[datetime]
+
+
+@dataclass
+class ListUserItem:
+    """Элемент списка пользователей бота (GET /api/users?bot_id=...)."""
+    user_id: int
+    full_name: str
+    username: Optional[str]
+    date_reg: Optional[datetime]
+    refer: Optional[str]
+    restricted: bool
+
+
+@dataclass
+class ListUsersResult:
+    """Результат GET /api/users?bot_id=...&limit=...&offset=..."""
+    bot_id: int
+    limit: int
+    offset: int
+    count: int
+    items: List[ListUserItem]
 
 
 @dataclass

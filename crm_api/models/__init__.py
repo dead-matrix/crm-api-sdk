@@ -40,6 +40,8 @@ from .payments import (
     ConfirmPaymentResult,
     RefundResult,
     InvoiceInfoResult,
+    Sale,
+    MonthlySalesResult,
 )
 
 # Prompt
@@ -66,6 +68,8 @@ from .users import (
     AddAccessResult,
     ExtendAccessResult,
     ExtendAiLimitResult,
+    ListUserItem,
+    ListUsersResult,
 )
 
 # Subscriptions
@@ -125,6 +129,8 @@ __all__ = [
     "ConfirmPaymentResult",
     "RefundResult",
     "InvoiceInfoResult",
+    "Sale",
+    "MonthlySalesResult",
     # Prompt
     "PromptUpdateResult",
     # Proxy
@@ -147,6 +153,8 @@ __all__ = [
     "AddAccessResult",
     "ExtendAccessResult",
     "ExtendAiLimitResult",
+    "ListUserItem",
+    "ListUsersResult",
     # Subscriptions
     "AccessPaymentRef",
     "AccessStaffRef",

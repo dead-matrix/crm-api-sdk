@@ -59,6 +59,18 @@ print(get_args(PaymentProvider))
 
 ## Changelog
 
+- **0.3.0**
+  - **BREAKING:** `CreateUserResult` расширен полями `user_id`, `full_name`,
+    `username`, `bot_id`, `refer`, `date_reg`. `POST /api/users` теперь
+    идемпотентен — при повторе на (user_id, bot_id) возвращает `created=False`
+    и существующие данные без побочных эффектов.
+  - Новый метод `client.list_users(bot_id, limit=100_000, offset=0)` →
+    `ListUsersResult`. Каждый `ListUserItem` содержит флаг `restricted` —
+    заблокированные юзеры (мессенджер не должен обрабатывать их сообщения).
+  - Новый метод `client.get_monthly_sales()` → `MonthlySalesResult` —
+    оплаченные платежи за текущий календарный месяц с `category`
+    (`main`/`extra`/`other`) и `repeat_purchase` per-category. Атрибуцию
+    к продавцу делает потребитель SDK на основании своих диалогов.
 - **0.2.0** — добавлен `platega` в `InvoiceDraftInput.provider`; экспортирован тип
   `PaymentProvider`.
 - **0.1.0** — первоначальный релиз.

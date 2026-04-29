@@ -40,6 +40,8 @@ from .models import (
     ConfirmPaymentResult,
     RefundResult,
     InvoiceInfoResult,
+    Sale,
+    MonthlySalesResult,
     # Prompt
     PromptUpdateResult,
     # Proxy
@@ -62,6 +64,8 @@ from .models import (
     AddAccessResult,
     ExtendAccessResult,
     ExtendAiLimitResult,
+    ListUserItem,
+    ListUsersResult,
     # Subscriptions
     AccessPaymentRef,
     AccessStaffRef,
@@ -133,6 +137,8 @@ __all__ = [
     "ConfirmPaymentResult",
     "RefundResult",
     "InvoiceInfoResult",
+    "Sale",
+    "MonthlySalesResult",
     # Prompt
     "PromptUpdateResult",
     # Proxy
@@ -155,6 +161,8 @@ __all__ = [
     "AddAccessResult",
     "ExtendAccessResult",
     "ExtendAiLimitResult",
+    "ListUserItem",
+    "ListUsersResult",
     # Subscriptions
     "AccessPaymentRef",
     "AccessStaffRef",

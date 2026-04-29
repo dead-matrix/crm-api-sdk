@@ -10,6 +10,8 @@ from ..models import (
     UpdateUserResult,
     UserBotInfo,
     GetUserResult,
+    ListUserItem,
+    ListUsersResult,
     ExtendAccessResult,
     ExtendAiLimitResult,
 )
@@ -20,10 +22,72 @@ class UsersAPI:
     # --------------- Users/Subs basic ---------------
 
     async def create_user(self, data: CreateUserInput) -> CreateUserResult:
+        """
+        POST /api/users — идемпотентное создание пользователя.
+
+        Если регистрация (user_id, bot_id) уже существует → `created=False`,
+        возвращаются существующие данные без побочных эффектов.
+        Иначе создаются `User`/`BotRegistration`/`Dialog` и `created=True`.
+        """
         payload = data.model_dump()
         res_data = await self._post("/api/users", payload, need_auth=True)
-        created = bool(res_data.get("created"))
-        return CreateUserResult(created=created)
+        return CreateUserResult(
+            created=bool(res_data.get("created")),
+            user_id=int(res_data["user_id"]),
+            full_name=str(res_data["full_name"]),
+            username=res_data.get("username"),
+            bot_id=int(res_data["bot_id"]),
+            refer=res_data.get("refer"),
+            date_reg=parse_dt(res_data.get("date_reg")),
+        )
+
+    async def list_users(
+        self,
+        bot_id: int,
+        limit: int = 100_000,
+        offset: int = 0,
+    ) -> ListUsersResult:
+        """
+        GET /api/users?bot_id=...&limit=...&offset=... — список пользователей
+        бота с пагинацией.
+
+        Args:
+            bot_id: ID бота (>= 1) — обязательный фильтр
+            limit: Максимум записей (>= 1, default 100_000)
+            offset: Смещение (>= 0, default 0)
+
+        Returns:
+            ListUsersResult с полями bot_id, limit, offset, count и items.
+            Каждый item содержит `restricted: bool` — флаг блокировки.
+        """
+        if bot_id <= 0:
+            raise ConfigError("bot_id must be positive integer")
+        if limit <= 0:
+            raise ConfigError("limit must be positive integer")
+        if offset < 0:
+            raise ConfigError("offset must be non-negative integer")
+
+        params = {"bot_id": int(bot_id), "limit": int(limit), "offset": int(offset)}
+        data = await self._get("/api/users", params=params, need_auth=True)
+        items: List[ListUserItem] = []
+        for it in data.get("items") or []:
+            items.append(
+                ListUserItem(
+                    user_id=int(it["user_id"]),
+                    full_name=str(it["full_name"]),
+                    username=it.get("username"),
+                    date_reg=parse_dt(it.get("date_reg")),
+                    refer=it.get("refer"),
+                    restricted=bool(it.get("restricted", False)),
+                )
+            )
+        return ListUsersResult(
+            bot_id=int(data["bot_id"]),
+            limit=int(data["limit"]),
+            offset=int(data["offset"]),
+            count=int(data["count"]),
+            items=items,
+        )
 
     async def update_user(self, user_id: int, data: UpdateUserInput) -> UpdateUserResult:
         if user_id <= 0:

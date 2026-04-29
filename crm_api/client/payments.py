@@ -16,6 +16,8 @@ from ..models import (
     RefundInput,
     RefundResult,
     InvoiceInfoResult,
+    Sale,
+    MonthlySalesResult,
 )
 from ..utils import parse_dt
 
@@ -126,6 +128,34 @@ class PaymentsAPI:
                 )
             )
         return items
+
+    async def get_monthly_sales(self) -> MonthlySalesResult:
+        """
+        GET /api/payments/sales — все оплаченные платежи за текущий
+        календарный месяц без фильтров.
+
+        Каждый элемент содержит category ("main"|"extra"|"other") и флаг
+        repeat_purchase (per-category). Атрибуцию к продавцу мессенджер
+        делает сам — на основе диалогов.
+        """
+        d = await self._get("/api/payments/sales", params=None, need_auth=True)
+        sales: List[Sale] = []
+        for it in d.get("payments") or []:
+            sales.append(
+                Sale(
+                    uuid=str(it["uuid"]),
+                    user_id=int(it["user_id"]),
+                    staff_id=it.get("staff_id"),
+                    amount_minor=int(it["amount_minor"]),
+                    category=str(it["category"]),
+                    repeat_purchase=bool(it.get("repeat_purchase", False)),
+                    date_paid=parse_dt(it.get("date_paid")),
+                )
+            )
+        return MonthlySalesResult(
+            month_start=parse_dt(d.get("month_start")),
+            payments=sales,
+        )
 
     async def confirm_payment(self, uuid: str) -> ConfirmPaymentResult:
         d = await self._get(f"/api/payments/confirm/{uuid}", params=None, need_auth=True)

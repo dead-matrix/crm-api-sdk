@@ -84,6 +84,36 @@ class RefundResult:
     status: Optional[str] = None
 
 @dataclass
+class Sale:
+    """
+    Элемент списка GET /api/payments/sales — оплаченный платёж за месяц.
+
+    `category`: "main" | "extra" | "other" — определяется по category_key
+    продуктов в позициях. "other"/неизвестные — мессенджер обычно игнорирует.
+
+    `repeat_purchase`: True если у клиента уже была оплата в этой же категории
+    раньше.
+    """
+    uuid: str
+    user_id: int
+    staff_id: Optional[int]
+    amount_minor: int
+    category: str
+    repeat_purchase: bool
+    date_paid: Optional[datetime]
+
+
+@dataclass
+class MonthlySalesResult:
+    """
+    Результат GET /api/payments/sales — все оплаченные платежи за текущий
+    календарный месяц без фильтров.
+    """
+    month_start: Optional[datetime]
+    payments: List[Sale]
+
+
+@dataclass
 class InvoiceInfoResult:
     uuid: str
     status: str

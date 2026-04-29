@@ -230,3 +230,74 @@ class TestPaymentsAPI:
             assert result.uuid == "pay-002"
             assert result.allowed is False
 
+
+class TestMonthlySales:
+    @pytest.mark.asyncio
+    async def test_get_monthly_sales_empty(self, client_factory):
+        mock_data = {"month_start": "2026-04-01T00:00:00+00:00", "payments": []}
+        routes = {"GET /api/payments/sales": lambda req: success_response(mock_data)}
+        async with client_factory(routes) as client:
+            result = await client.get_monthly_sales()
+            assert result.payments == []
+            assert result.month_start is not None
+
+    @pytest.mark.asyncio
+    async def test_get_monthly_sales_returns_categorized_payments(self, client_factory):
+        """Проверяем мэппинг полей: category, repeat_purchase, staff_id (none-safe)."""
+        mock_data = {
+            "month_start": "2026-04-01T00:00:00+00:00",
+            "payments": [
+                {
+                    "uuid": "a" * 32, "user_id": 100, "staff_id": 200,
+                    "amount_minor": 600000, "category": "main",
+                    "repeat_purchase": True,
+                    "date_paid": "2026-04-10T12:00:00+00:00",
+                },
+                {
+                    "uuid": "b" * 32, "user_id": 101, "staff_id": None,
+                    "amount_minor": 100000, "category": "other",
+                    "repeat_purchase": False,
+                    "date_paid": "2026-04-11T12:00:00+00:00",
+                },
+                {
+                    "uuid": "c" * 32, "user_id": 102, "staff_id": 201,
+                    "amount_minor": 300000, "category": "extra",
+                    "repeat_purchase": False,
+                    "date_paid": None,
+                },
+            ],
+        }
+        routes = {"GET /api/payments/sales": lambda req: success_response(mock_data)}
+        async with client_factory(routes) as client:
+            result = await client.get_monthly_sales()
+            assert len(result.payments) == 3
+
+            main_repeat, other_new, extra_no_date = result.payments
+
+            assert main_repeat.category == "main"
+            assert main_repeat.repeat_purchase is True
+            assert main_repeat.staff_id == 200
+            assert main_repeat.amount_minor == 600000
+
+            assert other_new.category == "other"
+            assert other_new.repeat_purchase is False
+            assert other_new.staff_id is None  # null прокинут как None
+
+            assert extra_no_date.category == "extra"
+            assert extra_no_date.date_paid is None  # парсер вернул None
+
+    @pytest.mark.asyncio
+    async def test_get_monthly_sales_no_query_params(self, client_factory):
+        """Эндпоинт не принимает параметров — SDK ничего не должен слать."""
+        captured: dict = {}
+
+        def _handler(req):
+            for k, v in req.url.params.items():
+                captured[k] = v
+            return success_response({"month_start": None, "payments": []})
+
+        routes = {"GET /api/payments/sales": _handler}
+        async with client_factory(routes) as client:
+            await client.get_monthly_sales()
+            assert captured == {}
+
