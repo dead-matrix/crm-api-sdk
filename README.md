@@ -59,6 +59,11 @@ print(get_args(PaymentProvider))
 
 ## Changelog
 
+- **0.4.0**
+  - **BREAKING:** `client.get_payments(...)` теперь возвращает
+    `PaymentsListResult` (`limit`, `offset`, `count`, `items`) вместо
+    плоского списка. Добавлены параметры `limit` (default 100_000) и
+    `offset` (default 0).
 - **0.3.0**
   - **BREAKING:** `CreateUserResult` расширен полями `user_id`, `full_name`,
     `username`, `bot_id`, `refer`, `date_reg`. `POST /api/users` теперь

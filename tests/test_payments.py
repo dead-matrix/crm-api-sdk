@@ -83,41 +83,90 @@ class TestPaymentsAPI:
 
     @pytest.mark.asyncio
     async def test_get_payments_success(self, client_factory):
-        """Test get_payments returns list of PaymentHistoryItem."""
-        mock_data = [
-            {
-                "uuid": "pay-001",
-                "date_create": "2024-01-10T10:00:00Z",
-                "date_invoiced": "2024-01-10T10:05:00Z",
-                "date_paid": "2024-01-10T10:10:00Z",
-                "status": "paid",
-                "amount_minor": 99000,
-                "discount_percent": 0,
-                "currency": "RUB",
-                "items": [{"id": 1, "title": "Product"}],
-                "client_email": "user@example.com",
-                "pay_url": None,
-                "provider": "yookassa",
-                "activation": [
-                    {"bot_id": 1, "code": "ABC123", "is_used": False, "url": "https://t.me/bot?start=ABC123"}
-                ],
-            }
-        ]
+        """Test get_payments returns PaymentsListResult with paginated items."""
+        mock_data = {
+            "limit": 100000,
+            "offset": 0,
+            "count": 1,
+            "items": [
+                {
+                    "uuid": "pay-001",
+                    "date_create": "2024-01-10T10:00:00Z",
+                    "date_invoiced": "2024-01-10T10:05:00Z",
+                    "date_paid": "2024-01-10T10:10:00Z",
+                    "status": "paid",
+                    "amount_minor": 99000,
+                    "discount_percent": 0,
+                    "currency": "RUB",
+                    "items": [{"id": 1, "title": "Product"}],
+                    "client_email": "user@example.com",
+                    "pay_url": None,
+                    "provider": "yookassa",
+                    "activation": [
+                        {"bot_id": 1, "code": "ABC123", "is_used": False, "url": "https://t.me/bot?start=ABC123"}
+                    ],
+                }
+            ],
+        }
         routes = {
-            # В текущей версии SDK user_id уходит через query string.
             "GET /api/payments": lambda req: success_response(mock_data),
         }
         async with client_factory(routes) as client:
             result = await client.get_payments(user_id=123)
-            
-            assert len(result) == 1
-            p = result[0]
+
+            assert result.limit == 100000
+            assert result.offset == 0
+            assert result.count == 1
+            assert len(result.items) == 1
+
+            p = result.items[0]
             assert p.uuid == "pay-001"
             assert p.status == "paid"
             assert p.amount_minor == 99000
             assert len(p.activation) == 1
             assert p.activation[0].code == "ABC123"
             assert p.activation[0].is_used is False
+
+    @pytest.mark.asyncio
+    async def test_get_payments_pagination_query_params(self, client_factory):
+        """SDK правильно прокидывает limit/offset/user_id в query string."""
+        captured: dict = {}
+
+        def _handler(req):
+            for k, v in req.url.params.items():
+                captured[k] = v
+            return success_response({"limit": 50, "offset": 100, "count": 0, "items": []})
+
+        routes = {"GET /api/payments": _handler}
+        async with client_factory(routes) as client:
+            await client.get_payments(user_id=42, limit=50, offset=100)
+            assert captured == {"user_id": "42", "limit": "50", "offset": "100"}
+
+    @pytest.mark.asyncio
+    async def test_get_payments_default_pagination(self, client_factory):
+        """Без параметров — limit=100_000, offset=0, без user_id."""
+        captured: dict = {}
+
+        def _handler(req):
+            for k, v in req.url.params.items():
+                captured[k] = v
+            return success_response({"limit": 100000, "offset": 0, "count": 0, "items": []})
+
+        routes = {"GET /api/payments": _handler}
+        async with client_factory(routes) as client:
+            await client.get_payments()
+            assert captured == {"limit": "100000", "offset": "0"}
+            assert "user_id" not in captured
+
+    @pytest.mark.asyncio
+    async def test_get_payments_validation_errors(self, client_factory):
+        """ConfigError при limit<=0 или offset<0 — без HTTP."""
+        from crm_api.exceptions import ConfigError
+        async with client_factory({}) as client:
+            with pytest.raises(ConfigError):
+                await client.get_payments(limit=0)
+            with pytest.raises(ConfigError):
+                await client.get_payments(offset=-1)
 
     @pytest.mark.asyncio
     async def test_confirm_payment_success(self, client_factory):

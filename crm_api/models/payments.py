@@ -84,6 +84,20 @@ class RefundResult:
     status: Optional[str] = None
 
 @dataclass
+class PaymentsListResult:
+    """
+    Результат GET /api/payments?user_id=&limit=&offset=
+
+    Сортировка: по date_create DESC (новые сверху). Поле count — количество
+    элементов в текущей странице, не общий total.
+    """
+    limit: int
+    offset: int
+    count: int
+    items: List[PaymentHistoryItem]
+
+
+@dataclass
 class Sale:
     """
     Элемент списка GET /api/payments/sales — оплаченный платёж за месяц.

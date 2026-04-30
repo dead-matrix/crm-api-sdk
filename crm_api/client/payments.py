@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from ..exceptions import ConfigError
 from ..models import (
     PaymentsCalculateInput,
     PaymentsCalculateResult,
@@ -11,6 +12,7 @@ from ..models import (
     InvoiceIssueInput,
     InvoiceIssueResult,
     PaymentHistoryItem,
+    PaymentsListResult,
     ActivationLink,
     ConfirmPaymentResult,
     RefundInput,
@@ -83,16 +85,34 @@ class PaymentsAPI:
             date_paid=parse_dt(d.get("date_paid")),
         )
 
-    async def get_payments(self, user_id: Optional[int] = None) -> List[PaymentHistoryItem]:
+    async def get_payments(
+        self,
+        user_id: Optional[int] = None,
+        limit: int = 100_000,
+        offset: int = 0,
+    ) -> PaymentsListResult:
         """
-        История платежей.
-        - Если user_id передан — возвращает платежи конкретного пользователя.
-        - Если user_id не передан — возвращает все платежи.
+        История платежей с пагинацией.
+
+        Args:
+            user_id: фильтр по покупателю; None → все платежи.
+            limit: максимум записей в странице (>= 1, default 100_000).
+            offset: смещение (>= 0, default 0).
+
+        Сортировка на сервере — по date_create DESC (новые сверху).
         """
-        params = {"user_id": user_id} if user_id is not None else None
-        arr = await self._get("/api/payments", params=params, need_auth=True)
+        if limit <= 0:
+            raise ConfigError("limit must be positive integer")
+        if offset < 0:
+            raise ConfigError("offset must be non-negative integer")
+
+        params: Dict[str, Any] = {"limit": int(limit), "offset": int(offset)}
+        if user_id is not None:
+            params["user_id"] = int(user_id)
+
+        data = await self._get("/api/payments", params=params, need_auth=True)
         items: List[PaymentHistoryItem] = []
-        for p in arr or []:
+        for p in (data.get("items") or []):
             activation: List[ActivationLink] = []
             for ac in p.get("activation") or []:
                 activation.append(
@@ -127,7 +147,12 @@ class PaymentsAPI:
                     activation=activation,
                 )
             )
-        return items
+        return PaymentsListResult(
+            limit=int(data.get("limit", limit)),
+            offset=int(data.get("offset", offset)),
+            count=int(data.get("count", len(items))),
+            items=items,
+        )
 
     async def get_monthly_sales(self) -> MonthlySalesResult:
         """
