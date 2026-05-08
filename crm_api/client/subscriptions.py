@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from ..exceptions import ConfigError
+from ..exceptions import ApiError, ConfigError
 from ..models import (
     AddAccessInput,
     AddAccessResult,
@@ -12,6 +12,8 @@ from ..models import (
     SubscriptionsHistoryResult,
     AccessDefinitionsResult,
     TransferLinkResult,
+    TransferRedeemInput,
+    TransferRedeemResult,
 )
 from ..utils import parse_dt
 
@@ -79,12 +81,83 @@ class SubscriptionsAPI:
         d = await self._get("/api/access/definitions", params=None, need_auth=True)
         return AccessDefinitionsResult(main=d.get("main") or {}, poster=d.get("poster") or {})
 
-    async def subscriptions_transfer_link(self, user_id: int, bot_id: int) -> TransferLinkResult:
+    async def subscriptions_transfer_link(
+        self, user_id: int, bot_id: int
+    ) -> TransferLinkResult:
+        """
+        Получить ссылку переноса доступа.
+
+        Возвращает TransferLinkResult, у которого:
+          - при успехе: transfer_link/token/expires_at/bot_id заполнены, error_code=None
+          - при ошибке (CRM ответил структурированным error_code): error_code/
+            error_message заполнены, transfer_link=None.
+
+        Для бек-совместимости НЕ выбрасывает ApiError для известных
+        бизнес-кодов (no_subscription, not_supported, configuration_error и т.п.).
+        Транспортные / неизвестные ошибки прокидываются как обычно.
+        """
         if user_id <= 0 or bot_id <= 0:
             raise ConfigError("user_id and bot_id must be positive integers")
         params = {"user_id": int(user_id), "bot_id": int(bot_id)}
-        d = await self._post(
-            "/api/subscriptions/transfer-link", json_body=None, need_auth=True, params=params
+        try:
+            d = await self._post(
+                "/api/subscriptions/transfer-link",
+                json_body=None,
+                need_auth=True,
+                params=params,
+            )
+        except ApiError as e:
+            return TransferLinkResult(
+                error_code=e.code,
+                error_message=str(e) or e.code,
+            )
+        return TransferLinkResult(
+            transfer_link=d.get("transfer_link"),
+            token=d.get("token"),
+            bot_id=d.get("bot_id"),
+            expires_at=parse_dt(d.get("expires_at")),
+            ttl_hours=d.get("ttl_hours"),
         )
-        return TransferLinkResult(transfer_link=str(d["transfer_link"]))
 
+    async def subscriptions_transfer_redeem(
+        self, data: TransferRedeemInput
+    ) -> TransferRedeemResult:
+        """
+        Выполнить redeem transfer-токена. Используется ботом при обработке
+        deep-link ?start=TR_...
+
+        Не выбрасывает ApiError на известные бизнес-кодах
+        (no_subscription / recipient_has_access / invalid_token / expired /
+        wrong_bot / same_user) - возвращает TransferRedeemResult(success=False).
+
+        Транспортные/системные ошибки выбрасываются как обычно.
+        """
+        if data.recipient_user_id <= 0 or data.bot_id <= 0 or not data.token:
+            raise ConfigError(
+                "token, recipient_user_id and bot_id must be provided"
+            )
+        body = {
+            "token": str(data.token),
+            "recipient_user_id": int(data.recipient_user_id),
+            "bot_id": int(data.bot_id),
+        }
+        try:
+            d = await self._post(
+                "/api/subscriptions/transfer/redeem",
+                json_body=body,
+                need_auth=True,
+            )
+        except ApiError as e:
+            return TransferRedeemResult(
+                success=False,
+                error_code=e.code,
+                error_message=str(e) or e.code,
+            )
+        return TransferRedeemResult(
+            success=True,
+            source_user_id=d.get("source_user_id"),
+            recipient_user_id=d.get("recipient_user_id"),
+            bot_id=d.get("bot_id"),
+            access=d.get("access"),
+            access_end=parse_dt(d.get("access_end")),
+        )

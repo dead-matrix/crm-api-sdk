@@ -17,6 +17,7 @@ from .tasks import TasksAPI
 from .scripts import ScriptsAPI
 from .profile import ProfileAPI
 from .subscriptions import SubscriptionsAPI
+from .activation import ActivationAPI
 
 
 
@@ -38,6 +39,7 @@ class CRMApiClient(
     ScriptsAPI,
     ProfileAPI,
     SubscriptionsAPI,
+    ActivationAPI,
 ):
     """Комбинированный клиент CRM-API: базовый клиент + API по доменам."""
 

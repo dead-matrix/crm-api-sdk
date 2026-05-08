@@ -81,6 +81,14 @@ from .subscriptions import (
     SubscriptionsHistoryResult,
     AccessDefinitionsResult,
     TransferLinkResult,
+    TransferRedeemInput,
+    TransferRedeemResult,
+)
+
+# Activation
+from .activation import (
+    ActivationRedeemInput,
+    ActivationRedeemResult,
 )
 
 # Tasks
@@ -164,6 +172,11 @@ __all__ = [
     "SubscriptionsHistoryResult",
     "AccessDefinitionsResult",
     "TransferLinkResult",
+    "TransferRedeemInput",
+    "TransferRedeemResult",
+    # Activation
+    "ActivationRedeemInput",
+    "ActivationRedeemResult",
     # Tasks
     "TaskListItem",
     "TaskInfoResult",
