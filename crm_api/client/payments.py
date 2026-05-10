@@ -111,8 +111,22 @@ class PaymentsAPI:
             params["user_id"] = int(user_id)
 
         data = await self._get("/api/payments", params=params, need_auth=True)
+
+        # Backward-compat: до пагинации CRM-API возвращал плоский массив
+        # платежей вместо envelope. Если сервер ещё не обновлён — сами
+        # обёртываем в формат новой схемы.
+        if isinstance(data, list):
+            envelope: Dict[str, Any] = {
+                "limit": limit,
+                "offset": offset,
+                "count": len(data),
+                "items": data,
+            }
+        else:
+            envelope = data
+
         items: List[PaymentHistoryItem] = []
-        for p in (data.get("items") or []):
+        for p in (envelope.get("items") or []):
             activation: List[ActivationLink] = []
             for ac in p.get("activation") or []:
                 activation.append(
