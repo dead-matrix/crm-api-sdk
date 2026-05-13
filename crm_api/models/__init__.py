@@ -94,8 +94,9 @@ from .activation import (
 # Tasks
 from .tasks import TaskListItem, TaskInfoResult, TaskLogResult, ActiveTasksResult
 
-# Scripts
-from .scripts import ScriptItem, ScriptFull, PriceMediaItem, ToolsMediaItem, ToolsMediaResult
+# Sales decks (legacy ScriptItem / ScriptFull удалены в Phase 5 — для
+# текстовых быстрых ответов используется ReplyTemplateFull ниже).
+from .scripts import PriceMediaItem, ToolsMediaItem, ToolsMediaResult
 
 # Reply templates (multimedia quick replies)
 from .reply_templates import (
@@ -210,9 +211,7 @@ __all__ = [
     "TaskInfoResult",
     "TaskLogResult",
     "ActiveTasksResult",
-    # Scripts
-    "ScriptItem",
-    "ScriptFull",
+    # Sales decks
     "PriceMediaItem",
     "ToolsMediaItem",
     "ToolsMediaResult",

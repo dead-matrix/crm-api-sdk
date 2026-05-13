@@ -1,23 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
-
-@dataclass
-class ScriptItem:
-    """Элемент списка текстовых скриптов."""
-    id: int
-    title: str
-    creator: Optional[str]
-
-
-@dataclass
-class ScriptFull:
-    """Полный текст скрипта."""
-    id: int
-    title: str
-    text: str
+# Sales-decks dataclasses. До Phase 5 этот модуль также экспортировал
+# ``ScriptItem`` и ``ScriptFull`` для legacy text quick replies; они
+# удалены вместе с ``scripts_list`` / ``scripts_get`` / ``scripts_create``
+# методами клиента после миграции на reply templates.
 
 
 @dataclass

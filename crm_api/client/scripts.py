@@ -2,67 +2,42 @@ from __future__ import annotations
 
 from typing import List
 
-from ..models import ScriptItem, ScriptFull, PriceMediaItem, ToolsMediaItem, ToolsMediaResult
+from ..models import PriceMediaItem, ToolsMediaItem, ToolsMediaResult
 
 
 class ScriptsAPI:
     """
-    API для работы со скриптами быстрых ответов.
-    
+    API для sales-decks (картинки с ценами и видео-обзоры).
+
     Эндпоинты:
-    - GET /api/scripts - список текстовых скриптов (отсортирован по частоте использования)
-    - GET /api/scripts/{id} - полный текст скрипта (+ инкремент счётчика использования)
-    - POST /api/scripts - создание нового текстового скрипта
     - POST /api/scripts/price - картинки с ценами для выбранных опций
     - POST /api/scripts/tools - видео с обзорами для выбранных опций
-    
-    Опции для price/tools:
+
+    Опции (общие для price и tools):
     - 0: Масслукинг
     - 1: Отметки в истории
     - 2: Комментинг
     - 3: Инвайтинг
     - 4: Граббер
+
+    История: до Phase 5 этот класс также экспортировал
+    ``scripts_list`` / ``scripts_get`` / ``scripts_create`` для legacy
+    текстовых быстрых ответов под /api/scripts. Эти три метода удалены
+    после миграции на reply templates (см. ``ReplyTemplatesAPI``);
+    оставшиеся два метода — это sales decks (источник данных —
+    ``app/data/scripts_data.json`` на стороне CRM-API), к быстрым
+    ответам они отношения не имеют.
     """
-
-    async def scripts_list(self) -> List[ScriptItem]:
-        """
-        Получить список всех текстовых скриптов.
-        Скрипты отсортированы по частоте использования текущим сотрудником.
-        """
-        data = await self._get("/api/scripts", params=None, need_auth=True)
-        return [ScriptItem(id=item["id"], title=item["title"], creator=item.get("creator")) for item in data]
-
-    async def scripts_get(self, script_id: int) -> ScriptFull:
-        """
-        Получить полный текст скрипта по ID.
-        При каждом вызове инкрементируется счётчик использования.
-        """
-        data = await self._get(f"/api/scripts/{script_id}", params=None, need_auth=True)
-        return ScriptFull(id=data["id"], title=data["title"], text=data["text"])
-
-    async def scripts_create(self, title: str, text: str) -> ScriptFull:
-        """
-        Создать новый текстовый скрипт.
-        
-        Args:
-            title: Название скрипта (1-255 символов)
-            text: Текст скрипта (1-4096 символов)
-        
-        Returns:
-            Созданный скрипт с ID, названием и текстом.
-        """
-        data = await self._post("/api/scripts", {"title": title, "text": text}, need_auth=True)
-        return ScriptFull(id=data["id"], title=data["title"], text=data["text"])
 
     async def scripts_price(self, options: List[int]) -> List[PriceMediaItem]:
         """
         Получить картинки с ценами для выбранных опций.
-        
+
         Args:
             options: Список ID опций (от 1 до 5 штук).
-                     0=Масслукинг, 1=Отметки в истории, 2=Комментинг, 
+                     0=Масслукинг, 1=Отметки в истории, 2=Комментинг,
                      3=Инвайтинг, 4=Граббер
-        
+
         Returns:
             Список элементов с текстом и массивом ссылок на картинки.
             Если выбраны опции 0-3 и 4 одновременно, вернётся 2 элемента.

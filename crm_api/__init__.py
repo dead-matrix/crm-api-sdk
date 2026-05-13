@@ -79,9 +79,8 @@ from .models import (
     TaskInfoResult,
     TaskLogResult,
     ActiveTasksResult,
-    # Scripts
-    ScriptItem,
-    ScriptFull,
+    # Sales decks (legacy ScriptItem / ScriptFull для list/get/create
+    # удалены в Phase 5 — теперь это reply templates ниже).
     PriceMediaItem,
     ToolsMediaItem,
     ToolsMediaResult,
@@ -177,9 +176,7 @@ __all__ = [
     "TaskInfoResult",
     "TaskLogResult",
     "ActiveTasksResult",
-    # Scripts
-    "ScriptItem",
-    "ScriptFull",
+    # Sales decks
     "PriceMediaItem",
     "ToolsMediaItem",
     "ToolsMediaResult",
