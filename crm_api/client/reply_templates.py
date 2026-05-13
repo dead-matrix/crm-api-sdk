@@ -17,6 +17,7 @@ video_note/sticker/file и медиа-альбомы из photo/video/gif.
 """
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 from ..exceptions import ConfigError
@@ -40,6 +41,13 @@ from ..models import (
     REPLY_TEMPLATE_TITLE_MAX_LENGTH,
 )
 from ..utils import parse_dt
+
+
+# Принимаем canonical 36-char UUID (8-4-4-4-12 hex), регистронезависимо.
+# Совпадает с серверным regex; pre-валидация здесь экономит round-trip.
+_PUBLIC_ID_PATTERN = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 
 
 class ReplyTemplatesAPI:
@@ -99,19 +107,43 @@ class ReplyTemplatesAPI:
         title: str,
         kind: str,
         items: List[ReplyTemplateItem],
+        public_id: Optional[str] = None,
     ) -> ReplyTemplateFull:
         """
         Создаёт шаблон. Валидация дублирует серверную, чтобы дать
         быструю обратную связь без round-trip.
+
+        public_id — опциональный 36-символьный UUID. Доверенные клиенты
+        (вроде мессенджера в save-as-template flow) генерят его
+        локально, чтобы заранее знать сегмент S3-пути
+        `shared/reply-templates/{public_id}/...` для копии медиа. None
+        → сервер сгенерит uuid7 сам. Дубль вызовет ApiError(409).
         """
         items = [_normalize_item(it) for it in items]
-        _validate_create(title=title.strip() if title else title, kind=kind, items=items)
+        normalized_public_id = (
+            public_id.strip().lower() if public_id is not None else None
+        )
+        if normalized_public_id == "":
+            normalized_public_id = None
+        if normalized_public_id is not None and not _PUBLIC_ID_PATTERN.match(
+            normalized_public_id
+        ):
+            raise ConfigError(
+                "public_id must be a 36-char UUID (8-4-4-4-12 hex)"
+            )
+
+        _validate_create(
+            title=title.strip() if title else title, kind=kind, items=items,
+        )
 
         payload: Dict[str, Any] = {
             "title": title.strip(),
             "kind": kind,
             "items": [_serialize_item(it) for it in items],
         }
+        if normalized_public_id is not None:
+            payload["publicId"] = normalized_public_id
+
         data = await self._post(
             "/api/reply-templates",
             payload,

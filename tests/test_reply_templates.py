@@ -516,6 +516,103 @@ class TestReplyTemplatesCreateValidation:
 # ───────────────── delete ─────────────────
 
 
+# ───────────────── public_id (Phase 3) ─────────────────
+
+
+class TestReplyTemplatesPublicID:
+    @pytest.mark.asyncio
+    async def test_create_round_trips_public_id_lowercased(self, client_factory):
+        captured: Dict[str, Any] = {}
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            captured["body"] = json.loads(req.content.decode())
+            return success_response(_full_row(id_=200, public_id="01234567-89ab-cdef-0123-456789abcdef"))
+
+        routes = {"POST /api/reply-templates": handler}
+        async with client_factory(routes) as client:
+            full = await client.reply_templates_create(
+                title="x", kind=REPLY_TEMPLATE_KIND_SINGLE,
+                items=[ReplyTemplateItem(position=0, type=REPLY_TEMPLATE_ITEM_TYPE_TEXT,
+                                          caption="hi")],
+                public_id="01234567-89AB-CDEF-0123-456789ABCDEF",
+            )
+        assert captured["body"]["publicId"] == "01234567-89ab-cdef-0123-456789abcdef"
+        assert full.public_id == "01234567-89ab-cdef-0123-456789abcdef"
+
+    @pytest.mark.asyncio
+    async def test_create_omits_public_id_when_none(self, client_factory):
+        captured: Dict[str, Any] = {}
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            captured["body"] = json.loads(req.content.decode())
+            return success_response(_full_row())
+
+        routes = {"POST /api/reply-templates": handler}
+        async with client_factory(routes) as client:
+            await client.reply_templates_create(
+                title="x", kind=REPLY_TEMPLATE_KIND_SINGLE,
+                items=[ReplyTemplateItem(position=0, type=REPLY_TEMPLATE_ITEM_TYPE_TEXT,
+                                          caption="hi")],
+            )
+        assert "publicId" not in captured["body"]
+
+    @pytest.mark.asyncio
+    async def test_create_omits_public_id_when_empty_string(self, client_factory):
+        captured: Dict[str, Any] = {}
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            captured["body"] = json.loads(req.content.decode())
+            return success_response(_full_row())
+
+        routes = {"POST /api/reply-templates": handler}
+        async with client_factory(routes) as client:
+            await client.reply_templates_create(
+                title="x", kind=REPLY_TEMPLATE_KIND_SINGLE,
+                items=[ReplyTemplateItem(position=0, type=REPLY_TEMPLATE_ITEM_TYPE_TEXT,
+                                          caption="hi")],
+                public_id="",
+            )
+        assert "publicId" not in captured["body"]
+
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            "not-a-uuid",
+            "01234567-89ab-cdef-0123-456789abcde",
+            "0123456789abcdef0123456789abcdef",
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_create_bad_public_id_rejected_before_http(self, client_factory, bad):
+        def must_not_call(req):
+            pytest.fail(f"HTTP must not be called: {req.url.path}")
+
+        routes = {"POST /api/reply-templates": must_not_call}
+        async with client_factory(routes) as client:
+            with pytest.raises(ConfigError):
+                await client.reply_templates_create(
+                    title="x", kind=REPLY_TEMPLATE_KIND_SINGLE,
+                    items=[ReplyTemplateItem(position=0, type=REPLY_TEMPLATE_ITEM_TYPE_TEXT,
+                                              caption="hi")],
+                    public_id=bad,
+                )
+
+    @pytest.mark.asyncio
+    async def test_create_duplicate_409_surfaces_as_api_error(self, client_factory):
+        routes = {
+            "POST /api/reply-templates":
+                lambda req: error_response("public_id already exists", status=409),
+        }
+        async with client_factory(routes) as client:
+            with pytest.raises(ApiError):
+                await client.reply_templates_create(
+                    title="x", kind=REPLY_TEMPLATE_KIND_SINGLE,
+                    items=[ReplyTemplateItem(position=0, type=REPLY_TEMPLATE_ITEM_TYPE_TEXT,
+                                              caption="hi")],
+                    public_id="01234567-89ab-cdef-0123-456789abcdef",
+                )
+
+
 class TestReplyTemplatesDelete:
     @pytest.mark.asyncio
     async def test_delete_maps_response(self, client_factory):
