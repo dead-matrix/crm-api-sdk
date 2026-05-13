@@ -15,6 +15,7 @@ from .servers import ServersAPI
 from .staff import StaffAPI
 from .tasks import TasksAPI
 from .scripts import ScriptsAPI
+from .reply_templates import ReplyTemplatesAPI
 from .profile import ProfileAPI
 from .subscriptions import SubscriptionsAPI
 from .activation import ActivationAPI
@@ -37,6 +38,7 @@ class CRMApiClient(
     StaffAPI,
     TasksAPI,
     ScriptsAPI,
+    ReplyTemplatesAPI,
     ProfileAPI,
     SubscriptionsAPI,
     ActivationAPI,

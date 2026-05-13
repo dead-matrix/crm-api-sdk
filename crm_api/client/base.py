@@ -223,6 +223,35 @@ class BaseCRMClient:
         except RetryError as re:
             raise HttpError(f"PUT {path} exhausted retries: {re}") from re
 
+    async def _delete(
+        self,
+        path: str,
+        *,
+        need_auth: bool,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any] | List[Any] | Any:
+        url = f"{self._base_url}{path}"
+        headers: Dict[str, str] = {}
+        query = params or {}
+        if need_auth:
+            token = await self._ensure_jwt()
+            headers["Authorization"] = f"Bearer {token}"
+            headers["X-Staff-ID"] = str(self._staff_id)
+
+        try:
+            async for attempt in self._retry:
+                with attempt:
+                    resp = await self._client.delete(url, headers=headers, params=query)
+                    if resp.status_code == 401 and need_auth:
+                        logger.debug("401 received on DELETE, refreshing JWT and retrying once")
+                        token = await self._refresh_jwt()
+                        headers["Authorization"] = f"Bearer {token}"
+                        resp = await self._client.delete(url, headers=headers, params=query)
+                    data = await self._handle_response(resp, expect_success=True)
+                    return data
+        except RetryError as re:
+            raise HttpError(f"DELETE {path} exhausted retries: {re}") from re
+
     async def _get_file(
         self,
         path: str,

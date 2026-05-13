@@ -97,6 +97,34 @@ from .tasks import TaskListItem, TaskInfoResult, TaskLogResult, ActiveTasksResul
 # Scripts
 from .scripts import ScriptItem, ScriptFull, PriceMediaItem, ToolsMediaItem, ToolsMediaResult
 
+# Reply templates (multimedia quick replies)
+from .reply_templates import (
+    ReplyTemplateCreator,
+    ReplyTemplatePreview,
+    ReplyTemplateListItem,
+    ReplyTemplateItem,
+    ReplyTemplateFull,
+    DeleteReplyTemplateResult,
+    REPLY_TEMPLATE_KIND_SINGLE,
+    REPLY_TEMPLATE_KIND_ALBUM,
+    REPLY_TEMPLATE_ITEM_TYPE_TEXT,
+    REPLY_TEMPLATE_ITEM_TYPE_PHOTO,
+    REPLY_TEMPLATE_ITEM_TYPE_VIDEO,
+    REPLY_TEMPLATE_ITEM_TYPE_GIF,
+    REPLY_TEMPLATE_ITEM_TYPE_VOICE,
+    REPLY_TEMPLATE_ITEM_TYPE_VIDEO_NOTE,
+    REPLY_TEMPLATE_ITEM_TYPE_STICKER,
+    REPLY_TEMPLATE_ITEM_TYPE_FILE,
+    REPLY_TEMPLATE_ITEM_TYPES,
+    REPLY_TEMPLATE_ALBUM_ITEM_TYPES,
+    REPLY_TEMPLATE_NO_CAPTION_ITEM_TYPES,
+    REPLY_TEMPLATE_TITLE_MAX_LENGTH,
+    REPLY_TEMPLATE_CAPTION_MAX,
+    REPLY_TEMPLATE_ALBUM_MIN_ITEMS,
+    REPLY_TEMPLATE_ALBUM_MAX_ITEMS,
+    REPLY_TEMPLATE_ITEM_MAX_POS,
+)
+
 __all__ = [
     # Inputs
     "ActionType",
@@ -188,5 +216,30 @@ __all__ = [
     "PriceMediaItem",
     "ToolsMediaItem",
     "ToolsMediaResult",
+    # Reply templates
+    "ReplyTemplateCreator",
+    "ReplyTemplatePreview",
+    "ReplyTemplateListItem",
+    "ReplyTemplateItem",
+    "ReplyTemplateFull",
+    "DeleteReplyTemplateResult",
+    "REPLY_TEMPLATE_KIND_SINGLE",
+    "REPLY_TEMPLATE_KIND_ALBUM",
+    "REPLY_TEMPLATE_ITEM_TYPE_TEXT",
+    "REPLY_TEMPLATE_ITEM_TYPE_PHOTO",
+    "REPLY_TEMPLATE_ITEM_TYPE_VIDEO",
+    "REPLY_TEMPLATE_ITEM_TYPE_GIF",
+    "REPLY_TEMPLATE_ITEM_TYPE_VOICE",
+    "REPLY_TEMPLATE_ITEM_TYPE_VIDEO_NOTE",
+    "REPLY_TEMPLATE_ITEM_TYPE_STICKER",
+    "REPLY_TEMPLATE_ITEM_TYPE_FILE",
+    "REPLY_TEMPLATE_ITEM_TYPES",
+    "REPLY_TEMPLATE_ALBUM_ITEM_TYPES",
+    "REPLY_TEMPLATE_NO_CAPTION_ITEM_TYPES",
+    "REPLY_TEMPLATE_TITLE_MAX_LENGTH",
+    "REPLY_TEMPLATE_CAPTION_MAX",
+    "REPLY_TEMPLATE_ALBUM_MIN_ITEMS",
+    "REPLY_TEMPLATE_ALBUM_MAX_ITEMS",
+    "REPLY_TEMPLATE_ITEM_MAX_POS",
 ]
 
