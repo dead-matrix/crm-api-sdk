@@ -85,6 +85,7 @@ class PaymentsAPI:
             date_create=parse_dt(d.get("date_create")),
             date_invoiced=parse_dt(d.get("date_invoiced")),
             date_paid=parse_dt(d.get("date_paid")),
+            payment_method=d.get("payment_method"),
         )
 
     async def get_payments(
@@ -161,6 +162,7 @@ class PaymentsAPI:
                     date_invoiced=parse_dt(p.get("date_invoiced")),
                     date_paid=parse_dt(p.get("date_paid")),
                     activation=activation,
+                    payment_method=p.get("payment_method"),
                 )
             )
         return PaymentsListResult(

@@ -67,6 +67,10 @@ class PaymentHistoryItem:
     date_invoiced: Optional[datetime]
     date_paid: Optional[datetime]
     activation: List[ActivationLink]
+    # Способ оплаты внутри провайдера ("sbp" | "crypto" для platega; None
+    # для исторических записей и других провайдеров). Опционально: старые
+    # версии CRM-API поле не возвращают.
+    payment_method: Optional[str] = None
 
 
 @dataclass
@@ -148,4 +152,8 @@ class InvoiceInfoResult:
     date_create: Optional[datetime]
     date_invoiced: Optional[datetime]
     date_paid: Optional[datetime]
+    # Способ оплаты внутри провайдера ("sbp" | "crypto" для platega; None
+    # для исторических записей и других провайдеров). Опционально: старые
+    # версии CRM-API поле не возвращают.
+    payment_method: Optional[str] = None
 
