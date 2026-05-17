@@ -34,7 +34,9 @@ class StatusesResult:
 
 @dataclass
 class ChangeStatusResult:
-    status: str
+    # None означает, что активный статус снят (POST /api/dialogs/status
+    # был вызван без status_id или с status_id=None).
+    status: Optional[str]
 
 
 @dataclass

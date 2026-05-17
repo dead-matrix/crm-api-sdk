@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..exceptions import ConfigError
 from ..models import (
@@ -45,14 +45,34 @@ class DialogsAPI:
             statuses=statuses,
         )
 
-    async def change_dialog_status(self, user_id: int, status_id: int) -> ChangeStatusResult:
+    async def change_dialog_status(
+        self, user_id: int, status_id: Optional[int] = None,
+    ) -> ChangeStatusResult:
+        """
+        Установить или снять статус диалога.
+
+        status_id=None (или без аргумента) → снять активный статус;
+        status_id >= 1 → установить указанный статус.
+
+        Возвращает ChangeStatusResult.status: название нового статуса
+        либо None, если статус был снят.
+        """
         if user_id <= 0:
             raise ConfigError("user_id must be positive integer")
-        if status_id <= 0:
-            raise ConfigError("status_id must be positive integer")
-        payload = {"user_id": int(user_id), "status_id": int(status_id)}
+        if status_id is not None and status_id <= 0:
+            raise ConfigError("status_id must be positive integer or None")
+
+        payload: Dict[str, Any] = {"user_id": int(user_id)}
+        if status_id is not None:
+            payload["status_id"] = int(status_id)
+
         d = await self._post("/api/dialogs/status", payload, need_auth=True)
-        return ChangeStatusResult(status=str(d.get("status")))
+        raw = d.get("status")
+        return ChangeStatusResult(status=str(raw) if raw is not None else None)
+
+    async def clear_dialog_status(self, user_id: int) -> ChangeStatusResult:
+        """Снять активный статус диалога — алиас change_dialog_status(uid, None)."""
+        return await self.change_dialog_status(user_id, status_id=None)
 
     async def transfer_dialog(self, user_id: int, to_department: str) -> TransferDialogResult:
         payload = {"user_id": int(user_id), "to_department": str(to_department)}

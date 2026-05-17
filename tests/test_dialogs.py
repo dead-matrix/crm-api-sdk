@@ -98,13 +98,47 @@ class TestDialogsAPI:
     async def test_change_dialog_status_invalid_ids(self, client_factory):
         """Test change_dialog_status raises ConfigError for invalid IDs."""
         from crm_api.exceptions import ConfigError
-        
+
         routes = {}
         async with client_factory(routes) as client:
             with pytest.raises(ConfigError, match="user_id must be positive"):
                 await client.change_dialog_status(user_id=0, status_id=1)
             with pytest.raises(ConfigError, match="status_id must be positive"):
                 await client.change_dialog_status(user_id=1, status_id=0)
+
+    @pytest.mark.asyncio
+    async def test_change_dialog_status_clear_omits_status_id(self, client_factory):
+        """status_id=None → payload без status_id, поле status в ответе → None."""
+        captured: dict = {}
+
+        def _handler(req):
+            import json as _json
+            captured.update(_json.loads(req.content))
+            return success_response({"status": None})
+
+        routes = {"POST /api/dialogs/status": _handler}
+        async with client_factory(routes) as client:
+            result = await client.change_dialog_status(user_id=100, status_id=None)
+            assert result.status is None
+
+        assert captured == {"user_id": 100}
+
+    @pytest.mark.asyncio
+    async def test_clear_dialog_status_alias(self, client_factory):
+        """clear_dialog_status — алиас для change_dialog_status(uid, None)."""
+        captured: dict = {}
+
+        def _handler(req):
+            import json as _json
+            captured.update(_json.loads(req.content))
+            return success_response({"status": None})
+
+        routes = {"POST /api/dialogs/status": _handler}
+        async with client_factory(routes) as client:
+            result = await client.clear_dialog_status(user_id=42)
+            assert result.status is None
+
+        assert captured == {"user_id": 42}
 
     @pytest.mark.asyncio
     async def test_transfer_dialog_success(self, client_factory):
