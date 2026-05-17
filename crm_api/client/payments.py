@@ -50,7 +50,9 @@ class PaymentsAPI:
         )
 
     async def create_invoice_draft(self, data: InvoiceDraftInput) -> InvoiceDraftResult:
-        d = await self._post("/api/payments/invoice/draft", data.model_dump(), need_auth=True)
+        # exclude_none: не отправляем payment_method=null для провайдеров,
+        # которые его не используют (yookassa/cryptocloud/heleket).
+        d = await self._post("/api/payments/invoice/draft", data.model_dump(exclude_none=True), need_auth=True)
         return InvoiceDraftResult(uuid=str(d["uuid"]), pay_link=str(d["pay_link"]), status=str(d["status"]))
 
     async def issue_invoice(self, data: InvoiceIssueInput) -> InvoiceIssueResult:

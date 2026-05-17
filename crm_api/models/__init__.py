@@ -4,6 +4,7 @@
 from .inputs import (
     ActionType,
     PaymentProvider,
+    PaymentMethod,
     CreateUserInput,
     UpdateUserInput,
     AddAccessInput,
@@ -130,6 +131,7 @@ __all__ = [
     # Inputs
     "ActionType",
     "PaymentProvider",
+    "PaymentMethod",
     "CreateUserInput",
     "UpdateUserInput",
     "AddAccessInput",

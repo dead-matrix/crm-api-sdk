@@ -246,6 +246,81 @@ class TestPaymentsAPI:
         assert set(get_args(PaymentProvider)) == {"yookassa", "cryptocloud", "heleket", "platega"}
 
     @pytest.mark.asyncio
+    async def test_payment_method_literal_exported(self):
+        """PaymentMethod должен быть публичным типом SDK."""
+        from crm_api import PaymentMethod
+        from typing import get_args
+        assert set(get_args(PaymentMethod)) == {"sbp", "crypto"}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("payment_method", ["sbp", "crypto"])
+    async def test_invoice_draft_accepts_platega_payment_method(self, payment_method):
+        inp = InvoiceDraftInput(
+            client_id=1, product_ids=[1], discount_percent=0, months=1,
+            provider="platega", payment_method=payment_method,
+        )
+        assert inp.payment_method == payment_method
+
+    @pytest.mark.asyncio
+    async def test_invoice_draft_payment_method_optional_for_other_providers(self):
+        for p in ("yookassa", "cryptocloud", "heleket"):
+            inp = InvoiceDraftInput(
+                client_id=1, product_ids=[1], discount_percent=0, months=1, provider=p,
+            )
+            assert inp.payment_method is None
+
+    @pytest.mark.asyncio
+    async def test_invoice_draft_rejects_unknown_payment_method(self):
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            InvoiceDraftInput(
+                client_id=1, product_ids=[1], discount_percent=0, months=1,
+                provider="platega", payment_method="cards",
+            )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("payment_method", ["sbp", "crypto"])
+    async def test_create_invoice_draft_sends_payment_method_for_platega(
+        self, client_factory, payment_method,
+    ):
+        captured_body: dict = {}
+
+        def _handler(req):
+            import json as _json
+            captured_body.update(_json.loads(req.content))
+            return success_response({
+                "uuid": "inv-1", "pay_link": "https://pay.example.com/inv-1", "status": "draft",
+            })
+
+        routes = {"POST /api/payments/invoice/draft": _handler}
+        async with client_factory(routes) as client:
+            await client.create_invoice_draft(InvoiceDraftInput(
+                client_id=1, product_ids=[1], discount_percent=0, months=1,
+                provider="platega", payment_method=payment_method,
+            ))
+        assert captured_body.get("provider") == "platega"
+        assert captured_body.get("payment_method") == payment_method
+
+    @pytest.mark.asyncio
+    async def test_create_invoice_draft_omits_payment_method_for_non_platega(self, client_factory):
+        """exclude_none: для yookassa в payload не должно быть payment_method ни в каком виде."""
+        captured_body: dict = {}
+
+        def _handler(req):
+            import json as _json
+            captured_body.update(_json.loads(req.content))
+            return success_response({
+                "uuid": "inv-1", "pay_link": "https://pay.example.com/inv-1", "status": "draft",
+            })
+
+        routes = {"POST /api/payments/invoice/draft": _handler}
+        async with client_factory(routes) as client:
+            await client.create_invoice_draft(InvoiceDraftInput(
+                client_id=1, product_ids=[1], discount_percent=0, months=1, provider="yookassa",
+            ))
+        assert "payment_method" not in captured_body
+
+    @pytest.mark.asyncio
     async def test_issue_invoice_works_for_platega_response(self, client_factory):
         """После issue для platega витрина получает pay_url от Platega."""
         mock_data = {

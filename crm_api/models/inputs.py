@@ -70,6 +70,11 @@ class PaymentsCalculateInput(BaseModel):
 # Держим как отдельный Literal — удобнее импортировать и документировать.
 PaymentProvider = Literal["yookassa", "cryptocloud", "heleket", "platega"]
 
+# Способ оплаты внутри провайдера. Сейчас релевантно только для provider="platega"
+# (CRM-API маппит "sbp"→Platega paymentMethod=2, "crypto"→13). Для остальных
+# провайдеров поле должно быть None — backend его игнорирует.
+PaymentMethod = Literal["sbp", "crypto"]
+
 
 class InvoiceDraftInput(BaseModel):
     client_id: int = Field(ge=1)
@@ -77,6 +82,7 @@ class InvoiceDraftInput(BaseModel):
     discount_percent: int = Field(ge=0, le=90)
     months: int = Field(ge=1)
     provider: PaymentProvider
+    payment_method: Optional[PaymentMethod] = Field(default=None)
 
 
 class InvoiceIssueInput(BaseModel):

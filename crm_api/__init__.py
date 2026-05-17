@@ -3,6 +3,7 @@ from .models import (
     # Inputs
     ActionType,
     PaymentProvider,
+    PaymentMethod,
     CreateUserInput,
     UpdateUserInput,
     AddAccessInput,
@@ -100,6 +101,7 @@ __all__ = [
     # Inputs
     "ActionType",
     "PaymentProvider",
+    "PaymentMethod",
     "CreateUserInput",
     "UpdateUserInput",
     "AddAccessInput",
