@@ -653,3 +653,217 @@ class TestReplyTemplatesDelete:
         async with client_factory(routes) as client:
             with pytest.raises(ApiError):
                 await client.reply_templates_delete(999)
+
+
+# ─────────── item id surfacing ───────────
+
+
+class TestReplyTemplateItemId:
+    """Read-response items[] must carry the per-row id. The messenger
+    keys delivery-ref upserts by it; if the SDK silently drops it,
+    cache writes will all collide on item_id=0."""
+
+    @pytest.mark.asyncio
+    async def test_get_propagates_item_ids(self, client_factory):
+        items = [
+            {"id": 100, "position": 0, "type": "photo",
+             "mediaObjectKey": "shared/reply-templates/uuid-1/0.jpg"},
+            {"id": 101, "position": 1, "type": "video",
+             "mediaObjectKey": "shared/reply-templates/uuid-1/1.mp4"},
+        ]
+        routes = {
+            "GET /api/reply-templates/{template_id}":
+                lambda req: success_response(_full_row(id_=1, items=items)),
+        }
+        async with client_factory(routes) as client:
+            full = await client.reply_templates_get(1)
+        assert [it.id for it in full.items] == [100, 101]
+
+
+# ─────────── delivery refs ───────────
+
+
+class TestReplyTemplatesDeliveryRefsList:
+    @pytest.mark.asyncio
+    async def test_empty(self, client_factory):
+        routes = {
+            "GET /api/reply-templates/{template_id}/delivery-refs":
+                lambda req: success_response({"refs": []}),
+        }
+        async with client_factory(routes) as client:
+            refs = await client.reply_templates_delivery_refs_list(
+                42, provider="telegram", provider_scope="tg_bot",
+            )
+        assert refs == []
+
+    @pytest.mark.asyncio
+    async def test_maps_rows(self, client_factory):
+        routes = {
+            "GET /api/reply-templates/{template_id}/delivery-refs":
+                lambda req: success_response({"refs": [
+                    {
+                        "id": 1, "itemId": 10, "provider": "telegram",
+                        "providerScope": "tg_bot",
+                        "mediaRef": "BAACAg-photo-id",
+                        "mediaUniqueRef": "AgADxx", "mediaType": "photo",
+                        "failCount": 0,
+                        "lastUsedAt": "2026-05-18T12:00:00",
+                        "createdAt": "2026-05-18T11:00:00",
+                        "updatedAt": "2026-05-18T12:00:00",
+                    },
+                    {
+                        "id": 2, "itemId": 11, "provider": "telegram",
+                        "providerScope": "tg_bot",
+                        "mediaRef": "BAACAg-video-id",
+                        "mediaUniqueRef": None, "mediaType": "video",
+                        "failCount": 1,
+                        "lastUsedAt": None, "createdAt": None, "updatedAt": None,
+                    },
+                ]}),
+        }
+        async with client_factory(routes) as client:
+            refs = await client.reply_templates_delivery_refs_list(
+                9, provider="telegram", provider_scope="tg_bot",
+            )
+        assert len(refs) == 2
+        assert (refs[0].item_id, refs[0].media_ref) == (10, "BAACAg-photo-id")
+        assert refs[0].fail_count == 0
+        assert refs[1].media_unique_ref is None
+        assert refs[1].fail_count == 1
+
+    @pytest.mark.asyncio
+    async def test_sends_query_params(self, client_factory):
+        captured: Dict[str, Any] = {}
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            captured["query"] = dict(req.url.params)
+            return success_response({"refs": []})
+
+        routes = {"GET /api/reply-templates/{template_id}/delivery-refs": handler}
+        async with client_factory(routes) as client:
+            await client.reply_templates_delivery_refs_list(
+                7, provider="telegram", provider_scope="tg_crm_bot",
+            )
+        assert captured["query"] == {
+            "provider": "telegram",
+            "providerScope": "tg_crm_bot",
+        }
+
+    @pytest.mark.asyncio
+    async def test_validates_args(self, client_factory):
+        async with client_factory({}) as client:
+            with pytest.raises(ConfigError):
+                await client.reply_templates_delivery_refs_list(
+                    0, provider="telegram", provider_scope="x",
+                )
+            with pytest.raises(ConfigError):
+                await client.reply_templates_delivery_refs_list(
+                    1, provider="", provider_scope="x",
+                )
+            with pytest.raises(ConfigError):
+                await client.reply_templates_delivery_refs_list(
+                    1, provider="telegram", provider_scope="   ",
+                )
+
+
+class TestReplyTemplatesDeliveryRefsUpsert:
+    @pytest.mark.asyncio
+    async def test_sends_camel_case_payload(self, client_factory):
+        from crm_api.models import UpsertDeliveryRefInput, UpsertDeliveryRefsInput
+        captured: Dict[str, Any] = {}
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            captured["body"] = json.loads(req.content.decode())
+            captured["method"] = req.method
+            return success_response({"refs": [
+                {
+                    "id": 1, "itemId": 11, "provider": "telegram",
+                    "providerScope": "tg_bot", "mediaRef": "BAA",
+                    "mediaUniqueRef": None, "mediaType": "photo",
+                    "failCount": 0,
+                    "lastUsedAt": None, "createdAt": None, "updatedAt": None,
+                },
+            ]})
+
+        routes = {"PUT /api/reply-templates/{template_id}/delivery-refs": handler}
+        async with client_factory(routes) as client:
+            refs = await client.reply_templates_delivery_refs_upsert(
+                5,
+                UpsertDeliveryRefsInput(
+                    provider="telegram",
+                    provider_scope="tg_bot",
+                    refs=[UpsertDeliveryRefInput(item_id=11, media_ref="BAA", media_type="photo")],
+                ),
+            )
+
+        assert captured["method"] == "PUT"
+        assert captured["body"]["provider"] == "telegram"
+        assert captured["body"]["providerScope"] == "tg_bot"
+        assert captured["body"]["refs"][0]["itemId"] == 11
+        assert captured["body"]["refs"][0]["mediaRef"] == "BAA"
+        assert refs[0].item_id == 11
+        assert refs[0].fail_count == 0
+
+    @pytest.mark.asyncio
+    async def test_validates_payload_before_http(self, client_factory):
+        from crm_api.models import UpsertDeliveryRefInput, UpsertDeliveryRefsInput
+
+        def must_not_call(req):
+            pytest.fail(f"HTTP must not be called: {req.url.path}")
+
+        routes = {"PUT /api/reply-templates/{template_id}/delivery-refs": must_not_call}
+        async with client_factory(routes) as client:
+            # Empty refs
+            with pytest.raises(ConfigError):
+                await client.reply_templates_delivery_refs_upsert(
+                    1, UpsertDeliveryRefsInput(provider="telegram", provider_scope="x", refs=[]),
+                )
+            # Empty provider
+            with pytest.raises(ConfigError):
+                await client.reply_templates_delivery_refs_upsert(
+                    1, UpsertDeliveryRefsInput(provider="", provider_scope="x",
+                                               refs=[UpsertDeliveryRefInput(item_id=1, media_ref="ok")]),
+                )
+            # Empty media_ref
+            with pytest.raises(ConfigError):
+                await client.reply_templates_delivery_refs_upsert(
+                    1, UpsertDeliveryRefsInput(provider="telegram", provider_scope="x",
+                                               refs=[UpsertDeliveryRefInput(item_id=1, media_ref=" ")]),
+                )
+            # Too many refs (>10)
+            with pytest.raises(ConfigError):
+                await client.reply_templates_delivery_refs_upsert(
+                    1,
+                    UpsertDeliveryRefsInput(
+                        provider="telegram", provider_scope="x",
+                        refs=[
+                            UpsertDeliveryRefInput(item_id=i + 1, media_ref="ok")
+                            for i in range(11)
+                        ],
+                    ),
+                )
+
+    @pytest.mark.asyncio
+    async def test_422_surfaces_as_validation_error(self, client_factory):
+        """The SDK's HTTP layer maps 4xx-with-VALIDATION_ERROR code (or
+        422) to ValidationError, not generic ApiError. Cross-template
+        item-id rejection lands here, so callers can distinguish 'bad
+        input, fix the args' from 'transient server error'."""
+        from crm_api.exceptions import ValidationError
+        from crm_api.models import UpsertDeliveryRefInput, UpsertDeliveryRefsInput
+
+        routes = {
+            "PUT /api/reply-templates/{template_id}/delivery-refs":
+                lambda req: error_response(
+                    "item ids do not belong to template 5", status=422,
+                ),
+        }
+        async with client_factory(routes) as client:
+            with pytest.raises(ValidationError):
+                await client.reply_templates_delivery_refs_upsert(
+                    5,
+                    UpsertDeliveryRefsInput(
+                        provider="telegram", provider_scope="x",
+                        refs=[UpsertDeliveryRefInput(item_id=99, media_ref="BAA")],
+                    ),
+                )

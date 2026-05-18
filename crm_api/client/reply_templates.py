@@ -23,11 +23,14 @@ from typing import Any, Dict, List, Optional
 from ..exceptions import ConfigError
 from ..models import (
     DeleteReplyTemplateResult,
+    DeliveryRef,
     ReplyTemplateCreator,
     ReplyTemplateFull,
     ReplyTemplateItem,
     ReplyTemplateListItem,
     ReplyTemplatePreview,
+    UpsertDeliveryRefInput,
+    UpsertDeliveryRefsInput,
     REPLY_TEMPLATE_ALBUM_ITEM_TYPES,
     REPLY_TEMPLATE_ALBUM_MAX_ITEMS,
     REPLY_TEMPLATE_ALBUM_MIN_ITEMS,
@@ -151,6 +154,95 @@ class ReplyTemplatesAPI:
         )
         return _map_full(data)
 
+    async def reply_templates_delivery_refs_list(
+        self,
+        template_id: int,
+        *,
+        provider: str,
+        provider_scope: str,
+    ) -> List[DeliveryRef]:
+        """
+        Возвращает delivery refs (Telegram file_id cache) для указанного
+        шаблона под одной парой (provider, provider_scope).
+
+        Пустой список — нормальное состояние "первая отправка, ничего
+        ещё не закэшировано"; не ошибка.
+        """
+        if template_id <= 0:
+            raise ConfigError("template_id must be positive integer")
+        provider = (provider or "").strip()
+        provider_scope = (provider_scope or "").strip()
+        if not provider:
+            raise ConfigError("provider must not be empty")
+        if not provider_scope:
+            raise ConfigError("provider_scope must not be empty")
+
+        data = await self._get(
+            f"/api/reply-templates/{template_id}/delivery-refs",
+            params={"provider": provider, "providerScope": provider_scope},
+            need_auth=True,
+        )
+        refs_raw = (data or {}).get("refs") or []
+        return [_map_delivery_ref(r) for r in refs_raw]
+
+    async def reply_templates_delivery_refs_upsert(
+        self,
+        template_id: int,
+        payload: UpsertDeliveryRefsInput,
+    ) -> List[DeliveryRef]:
+        """
+        Идемпотентный batch upsert delivery refs.
+
+        Серверный контракт: каждый item_id в payload.refs должен
+        принадлежать template_id (иначе 422). Успешный upsert
+        ВСЕГДА сбрасывает server-side fail_count → 0, потому что
+        upsert вызывается только после успешной отправки.
+        """
+        if template_id <= 0:
+            raise ConfigError("template_id must be positive integer")
+        provider = (payload.provider or "").strip()
+        provider_scope = (payload.provider_scope or "").strip()
+        if not provider:
+            raise ConfigError("provider must not be empty")
+        if not provider_scope:
+            raise ConfigError("provider_scope must not be empty")
+        if not payload.refs:
+            raise ConfigError("refs must contain at least one element")
+        if len(payload.refs) > REPLY_TEMPLATE_ALBUM_MAX_ITEMS:
+            raise ConfigError(
+                f"refs must contain at most {REPLY_TEMPLATE_ALBUM_MAX_ITEMS} elements"
+            )
+        for i, ref in enumerate(payload.refs):
+            if ref.item_id <= 0:
+                raise ConfigError(f"refs[{i}].item_id must be positive integer")
+            if not (ref.media_ref or "").strip():
+                raise ConfigError(f"refs[{i}].media_ref must not be empty")
+
+        wire_refs: List[Dict[str, Any]] = []
+        for ref in payload.refs:
+            entry: Dict[str, Any] = {
+                "itemId": ref.item_id,
+                "mediaRef": ref.media_ref.strip(),
+            }
+            if ref.media_unique_ref is not None:
+                entry["mediaUniqueRef"] = ref.media_unique_ref
+            if ref.media_type is not None:
+                entry["mediaType"] = ref.media_type
+            wire_refs.append(entry)
+
+        body: Dict[str, Any] = {
+            "provider": provider,
+            "providerScope": provider_scope,
+            "refs": wire_refs,
+        }
+        data = await self._put(
+            f"/api/reply-templates/{template_id}/delivery-refs",
+            body,
+            need_auth=True,
+        )
+        refs_raw = (data or {}).get("refs") or []
+        return [_map_delivery_ref(r) for r in refs_raw]
+
     async def reply_templates_delete(self, template_id: int) -> DeleteReplyTemplateResult:
         """
         Удаляет шаблон. На стороне CRM разрешено только creator'у —
@@ -193,6 +285,7 @@ def _map_item(raw: Dict[str, Any]) -> ReplyTemplateItem:
     return ReplyTemplateItem(
         position=int(raw.get("position", 0)),
         type=str(raw.get("type", "")),
+        id=int(raw.get("id", 0)),
         caption=raw.get("caption"),
         media_object_key=raw.get("mediaObjectKey"),
         mime=raw.get("mime"),
@@ -203,6 +296,22 @@ def _map_item(raw: Dict[str, Any]) -> ReplyTemplateItem:
         file_name=raw.get("fileName"),
         origin_tenant_id=raw.get("originTenantId"),
         origin_message_id=raw.get("originMessageId"),
+    )
+
+
+def _map_delivery_ref(raw: Dict[str, Any]) -> DeliveryRef:
+    return DeliveryRef(
+        id=int(raw["id"]),
+        item_id=int(raw["itemId"]),
+        provider=str(raw["provider"]),
+        provider_scope=str(raw["providerScope"]),
+        media_ref=str(raw["mediaRef"]),
+        media_unique_ref=raw.get("mediaUniqueRef"),
+        media_type=raw.get("mediaType"),
+        fail_count=int(raw.get("failCount", 0)),
+        last_used_at=parse_dt(raw.get("lastUsedAt")),
+        created_at=parse_dt(raw.get("createdAt")),
+        updated_at=parse_dt(raw.get("updatedAt")),
     )
 
 
