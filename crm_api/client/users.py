@@ -34,7 +34,9 @@ class UsersAPI:
         return CreateUserResult(
             created=bool(res_data.get("created")),
             user_id=int(res_data["user_id"]),
-            full_name=str(res_data["full_name"]),
+            # full_name nullable на идемпотентном пути; не оборачиваем в str(),
+            # иначе None превратится в строку "None".
+            full_name=res_data.get("full_name"),
             username=res_data.get("username"),
             bot_id=int(res_data["bot_id"]),
             refer=res_data.get("refer"),
@@ -74,7 +76,8 @@ class UsersAPI:
             items.append(
                 ListUserItem(
                     user_id=int(it["user_id"]),
-                    full_name=str(it["full_name"]),
+                    # full_name nullable в БД; передаём как есть.
+                    full_name=it.get("full_name"),
                     username=it.get("username"),
                     date_reg=parse_dt(it.get("date_reg")),
                     refer=it.get("refer"),

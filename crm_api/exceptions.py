@@ -10,7 +10,12 @@ class ConfigError(SDKError):
 
 
 class AuthError(SDKError):
-    """Ошибки аутентификации/авторизации."""
+    """Ошибки аутентификации/авторизации (HTTP 401/403)."""
+
+    def __init__(self, message: str, code: str | None = None, status: int | None = None):
+        super().__init__(message)
+        self.code = code
+        self.status = status
 
 
 class ApiError(SDKError):
@@ -31,4 +36,14 @@ class HttpError(SDKError):
 
 
 class ValidationError(SDKError):
-    """Ошибки валидации входных данных SDK."""
+    """
+    Ошибки валидации входных данных (HTTP 400/422 или code=VALIDATION_ERROR).
+
+    Поля `code`/`status` пробрасываются от сервера и могут быть None
+    для исключений, поднятых локально на стороне SDK.
+    """
+
+    def __init__(self, message: str, code: str | None = None, status: int | None = None):
+        super().__init__(message)
+        self.code = code
+        self.status = status

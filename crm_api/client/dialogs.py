@@ -62,9 +62,10 @@ class DialogsAPI:
         if status_id is not None and status_id <= 0:
             raise ConfigError("status_id must be positive integer or None")
 
-        payload: Dict[str, Any] = {"user_id": int(user_id)}
-        if status_id is not None:
-            payload["status_id"] = int(status_id)
+        payload: Dict[str, Any] = {
+            "user_id": int(user_id),
+            "status_id": int(status_id) if status_id is not None else None,
+        }
 
         d = await self._post("/api/dialogs/status", payload, need_auth=True)
         raw = d.get("status")
@@ -110,8 +111,10 @@ class DialogsAPI:
                     user_id=int(r["user_id"]),
                     full_name=r.get("full_name"),
                     has_active_subscription=bool(r.get("has_active_subscription")),
-                    status=str(r.get("status", "")),
-                    status_color=str(r.get("status_color", "")),
+                    # status/status_color nullable: передаём как есть, не оборачиваем
+                    # в str(), иначе None превратится в строку "None".
+                    status=r.get("status"),
+                    status_color=r.get("status_color"),
                 )
             )
 

@@ -59,6 +59,28 @@ print(get_args(PaymentProvider))
 
 ## Changelog
 
+- **Unreleased** (`docs/SDK_PARITY.md` — детали и migration notes)
+  - **BREAKING:** ряд полей в моделях ответа стал nullable, чтобы сервер
+    `null` не превращался в строку `"None"` и сохранялся паритет с Go SDK:
+    `CreateUserResult.full_name: str → Optional[str]`,
+    `ListUserItem.full_name: str → Optional[str]`,
+    `DialogSearchItem.status` / `status_color: str → Optional[str]`.
+  - **BREAKING (минорно):** `AuthError` и `ValidationError` теперь
+    несут атрибуты `code` и `status` (расширение сигнатуры конструктора
+    с keyword-аргументами, обратно-совместимо для существующих
+    вызывающих). Методы `activation_redeem`,
+    `subscriptions_transfer_link`, `subscriptions_transfer_redeem`
+    теперь корректно возвращают `Result(success=False, error_code=...)`
+    для бизнес-ошибок HTTP 400/403/422, а не пробрасывают исключение.
+  - Retry policy переписана без `tenacity`: идемпотентные методы
+    (`GET`/`PUT`/`DELETE`) ретраятся на `{429, 502, 503, 504}`,
+    транспортные ошибки — для любых методов. Паритет с Go SDK.
+  - `clear_dialog_status` теперь шлёт явный `status_id: null` в body
+    (сервер принимает оба варианта; единая форма упрощает диагностику).
+  - `add_access` опускает опциональные `None`-поля вместо отправки
+    `null` (`exclude_none=True`).
+  - Удалена недостижимая backward-compat ветка в `get_payments`.
+
 - **0.4.0**
   - **BREAKING:** `client.get_payments(...)` теперь возвращает
     `PaymentsListResult` (`limit`, `offset`, `count`, `items`) вместо

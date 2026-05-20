@@ -32,10 +32,14 @@ class CreateUserResult:
     Если регистрация (user_id, bot_id) уже существовала — `created=False`,
     поля заполнены существующими данными без побочных эффектов.
     Иначе — `created=True`, поля заполнены созданной записью.
+
+    full_name nullable: на идемпотентном пути сервер возвращает
+    `user.full_name` напрямую из БД, где поле технически nullable.
+    Для свежесозданной записи full_name всегда не-None.
     """
     created: bool
     user_id: int
-    full_name: str
+    full_name: Optional[str]
     username: Optional[str]
     bot_id: int
     refer: Optional[str]
@@ -44,9 +48,14 @@ class CreateUserResult:
 
 @dataclass
 class ListUserItem:
-    """Элемент списка пользователей бота (GET /api/users?bot_id=...)."""
+    """
+    Элемент списка пользователей бота (GET /api/users?bot_id=...).
+
+    full_name nullable: сервер возвращает `user.full_name` напрямую из
+    БД, где поле технически nullable.
+    """
     user_id: int
-    full_name: str
+    full_name: Optional[str]
     username: Optional[str]
     date_reg: Optional[datetime]
     refer: Optional[str]

@@ -41,12 +41,18 @@ class ChangeStatusResult:
 
 @dataclass
 class DialogSearchItem:
-    """Single dialog item from search results."""
+    """
+    Single dialog item from search results.
+
+    status/status_color nullable: сервер шлёт `status_title or default_status_title`,
+    и оба могут быть None (диалог без выставленного статуса в департаменте,
+    у которого не задан default_status). Паритет с DialogItem.
+    """
     user_id: int
     full_name: Optional[str]
     has_active_subscription: bool
-    status: str
-    status_color: str
+    status: Optional[str]
+    status_color: Optional[str]
 
 
 @dataclass

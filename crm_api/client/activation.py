@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..exceptions import ApiError, ConfigError
+from ..exceptions import ApiError, AuthError, ConfigError, ValidationError
 from ..models import (
     ActivationRedeemInput,
     ActivationRedeemResult,
@@ -15,11 +15,15 @@ class ActivationAPI:
         """
         Активировать ACT_-токен (deep-link, выданный после оплаты).
 
-        Не выбрасывает ApiError на известные бизнес-кодах (already_used,
-        invalid_token, expired, not_found, wrong_bot, wrong_recipient) -
-        возвращает ActivationRedeemResult(success=False).
+        Не выбрасывает исключение на известные бизнес-коды (already_used,
+        invalid_token, expired, not_found, wrong_bot, wrong_recipient,
+        revoked) — возвращает ActivationRedeemResult(success=False).
 
-        Транспортные/системные ошибки выбрасываются как обычно.
+        Сервер маркирует бизнес-ошибки HTTP-статусами 400/403/404/409/422,
+        поэтому ловим всё семейство ApiError/AuthError/ValidationError —
+        у каждого из них есть атрибут `code`.
+
+        Транспортные/системные ошибки (HttpError, ConfigError) выбрасываются.
         """
         if (
             not data.token
@@ -40,7 +44,7 @@ class ActivationAPI:
                 json_body=body,
                 need_auth=True,
             )
-        except ApiError as e:
+        except (ApiError, AuthError, ValidationError) as e:
             return ActivationRedeemResult(
                 success=False,
                 error_code=e.code,

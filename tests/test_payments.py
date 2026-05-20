@@ -159,6 +159,52 @@ class TestPaymentsAPI:
             assert "user_id" not in captured
 
     @pytest.mark.asyncio
+    async def test_get_payments_empty_items(self, client_factory):
+        """Сервер возвращает envelope с пустым items — клиент возвращает пустой список без падения."""
+        routes = {
+            "GET /api/payments": lambda req: success_response(
+                {"limit": 100000, "offset": 0, "count": 0, "items": []}
+            ),
+        }
+        async with client_factory(routes) as client:
+            result = await client.get_payments()
+            assert result.items == []
+            assert result.limit == 100000
+            assert result.offset == 0
+            assert result.count == 0
+
+    @pytest.mark.asyncio
+    async def test_get_payments_null_optional_fields_not_stringified(self, client_factory):
+        """
+        Если сервер возвращает status/status_ru = null (теоретически возможно
+        для записей в нештатном состоянии), Python SDK не должен превращать
+        их в строку 'None'. Паритет с Go (пустая строка).
+        """
+        mock_data = {
+            "limit": 1, "offset": 0, "count": 1,
+            "items": [{
+                "uuid": "pay-x",
+                "status": None,
+                "status_ru": None,
+                "client_id": 1,
+                "amount_minor": 0,
+                "currency": None,
+                "items": [],
+                "activation": [],
+            }],
+        }
+        routes = {"GET /api/payments": lambda req: success_response(mock_data)}
+        async with client_factory(routes) as client:
+            result = await client.get_payments()
+            p = result.items[0]
+            assert p.status == ""
+            assert p.status_ru == ""
+            # Currency дефолтится на 'RUB' если null.
+            assert p.currency == "RUB"
+            # Никаких "None" в строковых полях:
+            assert "None" not in (p.status + p.status_ru + p.currency)
+
+    @pytest.mark.asyncio
     async def test_get_payments_validation_errors(self, client_factory):
         """ConfigError при limit<=0 или offset<0 — без HTTP."""
         from crm_api.exceptions import ConfigError

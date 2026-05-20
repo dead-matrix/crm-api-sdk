@@ -10,6 +10,35 @@ from crm_api.models import AddAccessInput
 
 class TestSubscriptionsAPI:
     @pytest.mark.asyncio
+    async def test_add_access_body_omits_none_fields(self, client_factory):
+        """
+        Wire-паритет с Go SDK: опциональные None-поля не отправляются
+        как explicit null, а пропускаются. Сервер принимает оба варианта,
+        но единая форма упрощает диагностику.
+        """
+        captured = {}
+
+        def _handler(req):
+            import json as _json
+            body = _json.loads(req.content)
+            captured["body"] = body
+            captured["bytes"] = req.content
+            return success_response({
+                "created": True, "id": 1, "user_id": 1, "bot_id": 1,
+                "action": "add", "action_date": None, "access_end": None,
+            })
+
+        routes = {"POST /api/access/add": _handler}
+        async with client_factory(routes) as client:
+            await client.add_access(AddAccessInput(user_id=1, bot_id=1, action="add"))
+
+        assert captured["body"] == {"user_id": 1, "bot_id": 1, "action": "add"}
+        # Не должно быть explicit null'ов — паритет с Go omitempty.
+        assert b"null" not in captured["bytes"], (
+            "опциональные поля должны опускаться, а не отправляться как null"
+        )
+
+    @pytest.mark.asyncio
     async def test_add_access_success(self, client_factory):
         """Test add_access returns AddAccessResult."""
         mock_data = {
@@ -164,3 +193,113 @@ class TestSubscriptionsAPI:
             with pytest.raises(ConfigError, match="user_id and bot_id must be positive"):
                 await client.subscriptions_transfer_link(user_id=1, bot_id=0)
 
+    @pytest.mark.asyncio
+    async def test_transfer_link_no_subscription_returns_result(self, client_factory):
+        """
+        Сервер шлёт `no_subscription` с HTTP 403. Раньше Python ловил только
+        ApiError → AuthError пробрасывался. Теперь AuthError тоже ловится и
+        бизнес-код доходит до Result(error_code=...).
+        """
+        def _handler(req):
+            return httpx.Response(
+                403,
+                json={
+                    "status": "error",
+                    "message": "У пользователя отсутствует подписка для переноса",
+                    "code": "no_subscription",
+                },
+            )
+
+        routes = {"POST /api/subscriptions/transfer-link": _handler}
+        async with client_factory(routes) as client:
+            result = await client.subscriptions_transfer_link(user_id=123, bot_id=1)
+            assert result.transfer_link is None
+            assert result.error_code == "no_subscription"
+            assert result.error_message and "подписка" in result.error_message
+
+    @pytest.mark.asyncio
+    async def test_transfer_link_not_supported_returns_result(self, client_factory):
+        """501 → ApiError → Result(error_code='not_supported')."""
+        def _handler(req):
+            return httpx.Response(
+                501,
+                json={
+                    "status": "error",
+                    "message": "Перенос подписки для этого бота пока недоступен",
+                    "code": "not_supported",
+                },
+            )
+
+        routes = {"POST /api/subscriptions/transfer-link": _handler}
+        async with client_factory(routes) as client:
+            result = await client.subscriptions_transfer_link(user_id=1, bot_id=3)
+            assert result.error_code == "not_supported"
+
+    @pytest.mark.asyncio
+    async def test_transfer_redeem_invalid_token_returns_result(self, client_factory):
+        """invalid_token приходит с HTTP 400 → ValidationError → Result."""
+        from crm_api.models import TransferRedeemInput
+
+        def _handler(req):
+            return httpx.Response(
+                400,
+                json={
+                    "status": "error",
+                    "message": "Ссылка переноса недействительна или повреждена",
+                    "code": "invalid_token",
+                },
+            )
+
+        routes = {"POST /api/subscriptions/transfer/redeem": _handler}
+        async with client_factory(routes) as client:
+            result = await client.subscriptions_transfer_redeem(
+                TransferRedeemInput(token="TR_bad", recipient_user_id=1, bot_id=1)
+            )
+            assert result.success is False
+            assert result.error_code == "invalid_token"
+
+    @pytest.mark.asyncio
+    async def test_transfer_redeem_same_user_returns_result(self, client_factory):
+        """same_user приходит с HTTP 400 → ValidationError → Result."""
+        from crm_api.models import TransferRedeemInput
+
+        def _handler(req):
+            return httpx.Response(
+                400,
+                json={
+                    "status": "error",
+                    "message": "Перенос на того же пользователя невозможен",
+                    "code": "same_user",
+                },
+            )
+
+        routes = {"POST /api/subscriptions/transfer/redeem": _handler}
+        async with client_factory(routes) as client:
+            result = await client.subscriptions_transfer_redeem(
+                TransferRedeemInput(token="TR_x", recipient_user_id=1, bot_id=1)
+            )
+            assert result.success is False
+            assert result.error_code == "same_user"
+
+    @pytest.mark.asyncio
+    async def test_transfer_redeem_recipient_has_access_returns_result(self, client_factory):
+        """recipient_has_access приходит с HTTP 409 → ApiError → Result."""
+        from crm_api.models import TransferRedeemInput
+
+        def _handler(req):
+            return httpx.Response(
+                409,
+                json={
+                    "status": "error",
+                    "message": "У получателя уже есть активная подписка",
+                    "code": "recipient_has_access",
+                },
+            )
+
+        routes = {"POST /api/subscriptions/transfer/redeem": _handler}
+        async with client_factory(routes) as client:
+            result = await client.subscriptions_transfer_redeem(
+                TransferRedeemInput(token="TR_x", recipient_user_id=2, bot_id=1)
+            )
+            assert result.success is False
+            assert result.error_code == "recipient_has_access"

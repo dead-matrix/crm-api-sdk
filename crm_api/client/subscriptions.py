@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from ..exceptions import ApiError, ConfigError
+from ..exceptions import ApiError, AuthError, ConfigError, ValidationError
 from ..models import (
     AddAccessInput,
     AddAccessResult,
@@ -22,7 +22,11 @@ class SubscriptionsAPI:
     # --------------- Subscriptions ---------------
 
     async def add_access(self, data: AddAccessInput) -> AddAccessResult:
-        payload = data.model_dump(mode="json")
+        # exclude_none=True — паритет с Go SDK (`omitempty`): опциональные
+        # поля (access, action_date, access_end, payment_id, ref) пропускаются,
+        # а не отправляются как явный null. Серверная Pydantic-модель
+        # AccessAddIn принимает оба варианта одинаково.
+        payload = data.model_dump(mode="json", exclude_none=True)
         res_data = await self._post("/api/access/add", payload, need_auth=True)
         return AddAccessResult(
             created=bool(res_data.get("created")),
@@ -92,9 +96,11 @@ class SubscriptionsAPI:
           - при ошибке (CRM ответил структурированным error_code): error_code/
             error_message заполнены, transfer_link=None.
 
-        Для бек-совместимости НЕ выбрасывает ApiError для известных
-        бизнес-кодов (no_subscription, not_supported, configuration_error и т.п.).
-        Транспортные / неизвестные ошибки прокидываются как обычно.
+        Для бек-совместимости НЕ выбрасывает исключение на известные
+        бизнес-коды (no_subscription [403], not_supported [501],
+        configuration_error [500]). Сервер кодирует эти ошибки разными
+        HTTP-статусами, поэтому ловим всё семейство ApiError/AuthError/
+        ValidationError. Транспортные/неизвестные ошибки прокидываются.
         """
         if user_id <= 0 or bot_id <= 0:
             raise ConfigError("user_id and bot_id must be positive integers")
@@ -106,7 +112,7 @@ class SubscriptionsAPI:
                 need_auth=True,
                 params=params,
             )
-        except ApiError as e:
+        except (ApiError, AuthError, ValidationError) as e:
             return TransferLinkResult(
                 error_code=e.code,
                 error_message=str(e) or e.code,
@@ -126,9 +132,11 @@ class SubscriptionsAPI:
         Выполнить redeem transfer-токена. Используется ботом при обработке
         deep-link ?start=TR_...
 
-        Не выбрасывает ApiError на известные бизнес-кодах
+        Не выбрасывает исключение на известные бизнес-коды
         (no_subscription / recipient_has_access / invalid_token / expired /
-        wrong_bot / same_user) - возвращает TransferRedeemResult(success=False).
+        wrong_bot / same_user) — возвращает TransferRedeemResult(success=False).
+        Сервер кодирует эти ошибки HTTP-статусами 400/409/422, поэтому ловим
+        всё семейство ApiError/AuthError/ValidationError.
 
         Транспортные/системные ошибки выбрасываются как обычно.
         """
@@ -147,7 +155,7 @@ class SubscriptionsAPI:
                 json_body=body,
                 need_auth=True,
             )
-        except ApiError as e:
+        except (ApiError, AuthError, ValidationError) as e:
             return TransferRedeemResult(
                 success=False,
                 error_code=e.code,

@@ -115,43 +115,34 @@ class PaymentsAPI:
 
         data = await self._get("/api/payments", params=params, need_auth=True)
 
-        # Backward-compat: до пагинации CRM-API возвращал плоский массив
-        # платежей вместо envelope. Если сервер ещё не обновлён — сами
-        # обёртываем в формат новой схемы.
-        if isinstance(data, list):
-            envelope: Dict[str, Any] = {
-                "limit": limit,
-                "offset": offset,
-                "count": len(data),
-                "items": data,
-            }
-        else:
-            envelope = data
-
         items: List[PaymentHistoryItem] = []
-        for p in (envelope.get("items") or []):
+        for p in (data.get("items") or []):
             activation: List[ActivationLink] = []
             for ac in p.get("activation") or []:
+                # code/url — гарантированно non-null на сервере (см.
+                # _build_activation_entry). Подстраховываемся "" на случай
+                # будущих изменений, чтобы не получить "None".
                 activation.append(
                     ActivationLink(
                         bot_id=ac.get("bot_id"),
-                        code=str(ac.get("code")),
+                        code=ac.get("code") or "",
                         is_used=bool(ac.get("is_used")),
-                        url=str(ac.get("url")),
+                        url=ac.get("url") or "",
                     )
                 )
             items.append(
                 PaymentHistoryItem(
                     uuid=str(p["uuid"]),
-                    status=str(p.get("status")),
-                    status_ru=str(p.get("status_ru", "")),
-                    client_id=int(p.get("client_id", 0)),
+                    # Защита от случайного null в DB: "" вместо "None".
+                    status=p.get("status") or "",
+                    status_ru=p.get("status_ru") or "",
+                    client_id=int(p.get("client_id") or 0),
                     client_email=p.get("client_email"),
                     referer_id=p.get("referer_id"),
                     staff_id=p.get("staff_id"),
-                    amount_minor=int(p.get("amount_minor", 0)),
+                    amount_minor=int(p.get("amount_minor") or 0),
                     fx_rate_rub_usd=p.get("fx_rate_rub_usd"),
-                    currency=str(p.get("currency", "RUB")),
+                    currency=p.get("currency") or "RUB",
                     discount_percent=p.get("discount_percent"),
                     description=p.get("description"),
                     items=p.get("items") or [],

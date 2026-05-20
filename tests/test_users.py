@@ -256,3 +256,46 @@ class TestListUsers:
             result = await client.list_users(bot_id=1)
             assert result.items[0].restricted is False
 
+    @pytest.mark.asyncio
+    async def test_create_user_idempotent_null_full_name(self, client_factory):
+        """
+        Идемпотентный путь сервера может вернуть full_name=null (поле в БД
+        nullable). SDK не должен превращать None в строку 'None'.
+        """
+        mock_data = {
+            "created": False,
+            "user_id": 7,
+            "full_name": None,
+            "username": None,
+            "bot_id": 1,
+            "refer": None,
+            "date_reg": "2024-10-01T00:00:00+00:00",
+        }
+        routes = {"POST /api/users": lambda req: success_response(mock_data)}
+        async with client_factory(routes) as client:
+            result = await client.create_user(
+                CreateUserInput(user_id=7, full_name="ignored", bot_id=1)
+            )
+            assert result.created is False
+            assert result.full_name is None
+            assert result.username is None
+
+    @pytest.mark.asyncio
+    async def test_list_users_null_full_name(self, client_factory):
+        """ListUserItem.full_name=null остаётся None, не превращается в 'None'."""
+        mock_data = {
+            "bot_id": 1, "limit": 100, "offset": 0, "count": 1,
+            "items": [{
+                "user_id": 7,
+                "full_name": None,
+                "username": None,
+                "date_reg": None,
+                "refer": None,
+                "restricted": False,
+            }],
+        }
+        routes = {"GET /api/users": lambda req: success_response(mock_data)}
+        async with client_factory(routes) as client:
+            result = await client.list_users(bot_id=1)
+            assert result.items[0].full_name is None
+
