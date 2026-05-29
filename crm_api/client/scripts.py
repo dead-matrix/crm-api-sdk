@@ -58,8 +58,11 @@ class ScriptsAPI:
 
         Returns:
             Объект с текстом (базовый + ссылки на обзоры) и массивом объектов медиа,
-            содержащих video_url и file_id для отправки через Telegram.
+            содержащих video_url, thumb (превью видео) и file_id для отправки через Telegram.
         """
         data = await self._post("/api/scripts/tools", {"options": options, "bot_id": bot_id}, need_auth=True)
-        media_items = [ToolsMediaItem(video_url=item["video_url"], file_id=item["file_id"]) for item in data["media"]]
+        media_items = [
+            ToolsMediaItem(video_url=item["video_url"], thumb=item["thumb"], file_id=item["file_id"])
+            for item in data["media"]
+        ]
         return ToolsMediaResult(text=data["text"], media=media_items)

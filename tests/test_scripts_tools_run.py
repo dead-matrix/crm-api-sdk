@@ -4,7 +4,7 @@ POST /api/scripts/tools - видео с обзорами для выбранны
 
 Изменения в API:
 - Добавлен обязательный параметр bot_id
-- media теперь возвращает объекты с video_url и file_id
+- media теперь возвращает объекты с video_url, thumb и file_id
 """
 
 from __future__ import annotations
@@ -52,7 +52,9 @@ async def test_scripts_tools(client: CRMApiClient) -> None:
         print("-" * 40)
         for i, media_item in enumerate(result.media, 1):
             assert isinstance(media_item, ToolsMediaItem), f"Ожидался ToolsMediaItem, получен {type(media_item)}"
+            assert media_item.thumb, "Ожидался непустой thumb (превью видео)"
             print(f"{i}. video_url: {media_item.video_url}")
+            print(f"   thumb: {media_item.thumb}")
             print(f"   file_id: {media_item.file_id[:50]}..." if len(media_item.file_id) > 50 else f"   file_id: {media_item.file_id}")
         print("-" * 40)
         

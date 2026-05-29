@@ -18,8 +18,9 @@ class PriceMediaItem:
 
 @dataclass
 class ToolsMediaItem:
-    """Элемент медиа в ответе tools - URL видео и Telegram file_id."""
+    """Элемент медиа в ответе tools - URL видео, превью (thumb) и Telegram file_id."""
     video_url: str
+    thumb: str
     file_id: str
 
 
