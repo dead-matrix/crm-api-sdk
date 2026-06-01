@@ -57,6 +57,7 @@ class ActivationAPI:
             action=d.get("action"),
             access=d.get("access"),
             access_end=parse_dt(d.get("access_end")),
+            quantity=d.get("quantity"),
             activation_code_id=d.get("activation_code_id"),
             payment_id=d.get("payment_id"),
         )

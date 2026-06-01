@@ -17,6 +17,7 @@ class TestActivationRedeem:
             "action": "add",
             "access": {"main": {"invite": True}},
             "access_end": "2030-01-01T00:00:00+00:00",
+            "quantity": 3,
             "activation_code_id": 42,
             "payment_id": 7,
         }
@@ -29,6 +30,7 @@ class TestActivationRedeem:
             assert result.success is True
             assert result.user_id == 100
             assert result.action == "add"
+            assert result.quantity == 3
             assert result.error_code is None
 
     @pytest.mark.asyncio

@@ -30,5 +30,6 @@ class ActivationRedeemResult:
     action: Optional[str] = None  # "add" | "extend"
     access: Optional[Any] = None
     access_end: Optional[datetime] = None
+    quantity: Optional[int] = None  # кол-во месяцев (срок = quantity*30 дней)
     activation_code_id: Optional[int] = None
     payment_id: Optional[int] = None
