@@ -59,7 +59,7 @@ from .referrals import ReferreePayment, ReferreeInfo, ReferralsInfoResult
 from .servers import ServerRestartResult
 
 # Staff
-from .staff import StaffInfo
+from .staff import StaffInfo, StaffListItem
 
 # Users
 from .users import (
@@ -190,6 +190,7 @@ __all__ = [
     "ServerRestartResult",
     # Staff
     "StaffInfo",
+    "StaffListItem",
     # Users
     "UserBotInfo",
     "GetUserResult",

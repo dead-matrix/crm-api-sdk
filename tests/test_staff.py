@@ -77,9 +77,42 @@ class TestStaffAPI:
         }
         async with client_factory(routes) as client:
             result = await client.get_staff()
-            
+
             assert result.name is None
             assert result.role is None
             assert result.is_active is True
             assert result.access is None
+
+    @pytest.mark.asyncio
+    async def test_list_staff_success(self, client_factory):
+        """Test list_staff returns properly mapped StaffListItem list."""
+        mock_data = [
+            {"user_id": 1001, "name": "Alice", "role": "admin"},
+            {"user_id": 7014133383, "name": "Bob", "role": "support"},
+        ]
+        routes = {
+            "GET /api/staff/list": lambda req: success_response(mock_data),
+        }
+        async with client_factory(routes) as client:
+            result = await client.list_staff()
+
+            assert len(result) == 2
+
+            assert result[0].user_id == 1001
+            assert result[0].name == "Alice"
+            assert result[0].role == "admin"
+
+            assert result[1].user_id == 7014133383
+            assert result[1].name == "Bob"
+            assert result[1].role == "support"
+
+    @pytest.mark.asyncio
+    async def test_list_staff_empty(self, client_factory):
+        """Test list_staff with empty response."""
+        routes = {
+            "GET /api/staff/list": lambda req: success_response([]),
+        }
+        async with client_factory(routes) as client:
+            result = await client.list_staff()
+            assert result == []
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from ..models import StaffInfo
+from typing import List
+
+from ..models import StaffInfo, StaffListItem
 
 
 class StaffAPI:
@@ -14,4 +16,12 @@ class StaffAPI:
             is_active=bool(d.get("is_active")),
             access=d.get("access"),
         )
+
+    async def list_staff(self) -> List[StaffListItem]:
+        """GET /api/staff/list — короткая инфа обо всех сотрудниках с user_id > 1000."""
+        data = await self._get("/api/staff/list", params=None, need_auth=True)
+        items: List[StaffListItem] = []
+        for d in data or []:
+            items.append(StaffListItem(user_id=int(d["user_id"]), name=str(d["name"]), role=str(d["role"])))
+        return items
 

@@ -58,6 +58,7 @@ from .models import (
     ServerRestartResult,
     # Staff
     StaffInfo,
+    StaffListItem,
     # Users
     UserBotInfo,
     GetUserResult,
@@ -156,6 +157,7 @@ __all__ = [
     "ServerRestartResult",
     # Staff
     "StaffInfo",
+    "StaffListItem",
     # Users
     "UserBotInfo",
     "GetUserResult",
