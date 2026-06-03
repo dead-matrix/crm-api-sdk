@@ -33,3 +33,7 @@ class ActivationRedeemResult:
     quantity: Optional[int] = None  # кол-во месяцев (срок = quantity*30 дней)
     activation_code_id: Optional[int] = None
     payment_id: Optional[int] = None
+    # True — повтор уже использованного кода тем же получателем (ретрай SDK при
+    # потерянном ответе / повторный клик): CRM вернул ранее выданный доступ
+    # вместо 409 'already_used'. На свежем redeem отсутствует (None).
+    idempotent_replay: Optional[bool] = None

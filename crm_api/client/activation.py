@@ -60,4 +60,5 @@ class ActivationAPI:
             quantity=d.get("quantity"),
             activation_code_id=d.get("activation_code_id"),
             payment_id=d.get("payment_id"),
+            idempotent_replay=d.get("idempotent_replay"),
         )
