@@ -48,7 +48,14 @@ class TasksAPI:
         if task_type is not None:
             params["task_type"] = str(task_type)
         d = await self._get("/api/tasks/list", params=params, need_auth=True)
-        return [TaskListItem(id=int(i.get("id", 0)), text=str(i.get("text", ""))) for i in d or []]
+        return [
+            TaskListItem(
+                id=int(i.get("id", 0)),
+                text=str(i.get("text", "")),
+                hide=bool(i.get("hide", False)),
+            )
+            for i in d or []
+        ]
 
     async def tasks_info(self, user_id: int, bot_id: int, task_type: str, task_id: int) -> TaskInfoResult:
         params = {

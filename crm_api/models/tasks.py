@@ -8,6 +8,7 @@ from typing import Optional
 class TaskListItem:
     id: int
     text: str
+    hide: bool = False
 
 
 @dataclass
