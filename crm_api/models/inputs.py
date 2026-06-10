@@ -73,7 +73,8 @@ PaymentProvider = Literal["yookassa", "cryptocloud", "heleket", "platega"]
 # Способ оплаты внутри провайдера. Сейчас релевантно только для provider="platega"
 # (CRM-API маппит "sbp"→Platega paymentMethod=2, "crypto"→13, "international"→12).
 # Для остальных провайдеров поле должно быть None — backend его игнорирует.
-# USD-методы crypto/international выставляются в долларах, sbp — в рублях.
+# crypto выставляется в долларах; sbp и international — в рублях (Platega для
+# метода 12 принимает только EUR/RUB и сама конвертирует в валюту плательщика).
 PaymentMethod = Literal["sbp", "crypto", "international"]
 
 
