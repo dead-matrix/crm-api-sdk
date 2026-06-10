@@ -71,9 +71,10 @@ class PaymentsCalculateInput(BaseModel):
 PaymentProvider = Literal["yookassa", "cryptocloud", "heleket", "platega"]
 
 # Способ оплаты внутри провайдера. Сейчас релевантно только для provider="platega"
-# (CRM-API маппит "sbp"→Platega paymentMethod=2, "crypto"→13). Для остальных
-# провайдеров поле должно быть None — backend его игнорирует.
-PaymentMethod = Literal["sbp", "crypto"]
+# (CRM-API маппит "sbp"→Platega paymentMethod=2, "crypto"→13, "international"→12).
+# Для остальных провайдеров поле должно быть None — backend его игнорирует.
+# USD-методы crypto/international выставляются в долларах, sbp — в рублях.
+PaymentMethod = Literal["sbp", "crypto", "international"]
 
 
 class InvoiceDraftInput(BaseModel):

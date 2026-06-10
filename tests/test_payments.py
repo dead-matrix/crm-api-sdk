@@ -296,10 +296,10 @@ class TestPaymentsAPI:
         """PaymentMethod должен быть публичным типом SDK."""
         from crm_api import PaymentMethod
         from typing import get_args
-        assert set(get_args(PaymentMethod)) == {"sbp", "crypto"}
+        assert set(get_args(PaymentMethod)) == {"sbp", "crypto", "international"}
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("payment_method", ["sbp", "crypto"])
+    @pytest.mark.parametrize("payment_method", ["sbp", "crypto", "international"])
     async def test_invoice_draft_accepts_platega_payment_method(self, payment_method):
         inp = InvoiceDraftInput(
             client_id=1, product_ids=[1], discount_percent=0, months=1,
@@ -325,7 +325,7 @@ class TestPaymentsAPI:
             )
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("payment_method", ["sbp", "crypto"])
+    @pytest.mark.parametrize("payment_method", ["sbp", "crypto", "international"])
     async def test_create_invoice_draft_sends_payment_method_for_platega(
         self, client_factory, payment_method,
     ):
