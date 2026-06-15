@@ -70,6 +70,12 @@ class AccessManageInput(BaseModel):
     days: Optional[int] = Field(default=None, ge=1)
     end: Optional[datetime] = Field(default=None)
     note: Optional[str] = Field(default=None, max_length=2048)
+    idempotency_key: Optional[str] = Field(default=None, max_length=64)
+
+    @field_validator("op", mode="before")
+    @classmethod
+    def _norm_op(cls, v):
+        return v.strip().lower() if isinstance(v, str) else v
 
 
 # -------- Payments inputs --------

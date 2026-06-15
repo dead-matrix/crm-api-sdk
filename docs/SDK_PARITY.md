@@ -154,7 +154,7 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 | Endpoint | Python | Go | Request | Response |
 |---|---|---|---|---|
 | `POST /access/add` | `add_access(input)` | `AddAccess(ctx, input)` | `AddAccessInput` (опциональные поля опускаются — `exclude_none` / `omitempty`) | `AddAccessResult` |
-| `POST /access/manage` | `manage_access(input)` | `ManageAccess(ctx, input)` | `AccessManageInput { user_id, bot_id, op, features?, days?, end?, note? }` (опц. поля опускаются) | `AccessManageResult { user_id, bot_id, op, action, access, access_end, crm_access_id }` |
+| `POST /access/manage` | `manage_access(input)` | `ManageAccess(ctx, input)` | `AccessManageInput { user_id, bot_id, op, features?, days?, end?, note?, idempotency_key? }` (опц. поля опускаются; повтор с тем же `idempotency_key` не дублирует операцию; `op` нормализуется в нижний регистр; доступ только staff с департаментом sales) | `AccessManageResult { user_id, bot_id, op, action, access, access_end, crm_access_id }` |
 | `GET /users/{user_id}/subscriptions/history` | `subscriptions_history(user_id)` | `SubscriptionsHistory(ctx, userID)` | — | `SubscriptionsHistoryResult { user_id, history: []AccessHistoryItem }` |
 | `GET /access/definitions` | `access_definitions()` | `AccessDefinitions(ctx)` | — | `AccessDefinitionsResult { main, poster }` |
 | `POST /subscriptions/transfer-link?user_id=&bot_id=` | `subscriptions_transfer_link(user_id, bot_id)` | `SubscriptionsTransferLink(ctx, userID, botID)` | — | `TransferLinkResult` |
