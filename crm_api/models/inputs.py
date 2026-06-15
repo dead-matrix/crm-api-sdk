@@ -58,6 +58,20 @@ class AddAccessInput(BaseModel):
         return val
 
 
+AccessOp = Literal["grant", "extend", "remove_features", "revoke_all"]
+
+
+class AccessManageInput(BaseModel):
+    """Входная модель для POST /api/access/manage (ручная выдача без оплаты)."""
+    user_id: int = Field(ge=1)
+    bot_id: int = Field(ge=1)
+    op: AccessOp
+    features: Optional[List[str]] = Field(default=None)
+    days: Optional[int] = Field(default=None, ge=1)
+    end: Optional[datetime] = Field(default=None)
+    note: Optional[str] = Field(default=None, max_length=2048)
+
+
 # -------- Payments inputs --------
 
 class PaymentsCalculateInput(BaseModel):

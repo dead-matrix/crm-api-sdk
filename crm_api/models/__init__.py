@@ -8,6 +8,8 @@ from .inputs import (
     CreateUserInput,
     UpdateUserInput,
     AddAccessInput,
+    AccessOp,
+    AccessManageInput,
     PaymentsCalculateInput,
     InvoiceDraftInput,
     InvoiceIssueInput,
@@ -70,6 +72,7 @@ from .users import (
     AddAccessResult,
     ExtendAccessResult,
     ExtendAiLimitResult,
+    AccessManageResult,
     ListUserItem,
     ListUsersResult,
 )
@@ -139,6 +142,8 @@ __all__ = [
     "CreateUserInput",
     "UpdateUserInput",
     "AddAccessInput",
+    "AccessOp",
+    "AccessManageInput",
     "PaymentsCalculateInput",
     "InvoiceDraftInput",
     "InvoiceIssueInput",
@@ -199,6 +204,7 @@ __all__ = [
     "AddAccessResult",
     "ExtendAccessResult",
     "ExtendAiLimitResult",
+    "AccessManageResult",
     "ListUserItem",
     "ListUsersResult",
     # Subscriptions

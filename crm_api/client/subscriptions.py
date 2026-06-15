@@ -6,6 +6,8 @@ from ..exceptions import ApiError, AuthError, ConfigError, ValidationError
 from ..models import (
     AddAccessInput,
     AddAccessResult,
+    AccessManageInput,
+    AccessManageResult,
     AccessPaymentRef,
     AccessStaffRef,
     AccessHistoryItem,
@@ -36,6 +38,19 @@ class SubscriptionsAPI:
             action=str(res_data["action"]),
             action_date=parse_dt(res_data.get("action_date")),
             access_end=parse_dt(res_data.get("access_end")),
+        )
+
+    async def manage_access(self, data: AccessManageInput) -> AccessManageResult:
+        payload = data.model_dump(mode="json", exclude_none=True)
+        res = await self._post("/api/access/manage", payload, need_auth=True)
+        return AccessManageResult(
+            user_id=int(res["user_id"]),
+            bot_id=int(res["bot_id"]),
+            op=str(res["op"]),
+            action=str(res["action"]),
+            access=res.get("access"),
+            access_end=parse_dt(res.get("access_end")),
+            crm_access_id=res.get("crm_access_id"),
         )
 
     async def subscriptions_history(self, user_id: int) -> SubscriptionsHistoryResult:

@@ -105,3 +105,15 @@ class ExtendAiLimitResult:
     previous_ai_limit: int
     ai_limit: int
 
+
+@dataclass
+class AccessManageResult:
+    """Result of POST /api/access/manage."""
+    user_id: int
+    bot_id: int
+    op: str
+    action: str
+    access: Optional[Any]
+    access_end: Optional[datetime]
+    crm_access_id: Optional[int]
+
