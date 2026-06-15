@@ -54,6 +54,8 @@ from .models import (
     ReferreePayment,
     ReferreeInfo,
     ReferralsInfoResult,
+    WithdrawRequestResult,
+    WithdrawSettleResult,
     # Servers
     ServerRestartResult,
     # Staff
@@ -153,6 +155,8 @@ __all__ = [
     "ReferreePayment",
     "ReferreeInfo",
     "ReferralsInfoResult",
+    "WithdrawRequestResult",
+    "WithdrawSettleResult",
     # Servers
     "ServerRestartResult",
     # Staff

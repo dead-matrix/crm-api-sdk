@@ -55,7 +55,13 @@ from .prompts import PromptUpdateResult
 from .proxy import ProxyCheckItem, ProxyCheckResult, ProxyItem
 
 # Referrals
-from .referrals import ReferreePayment, ReferreeInfo, ReferralsInfoResult
+from .referrals import (
+    ReferreePayment,
+    ReferreeInfo,
+    ReferralsInfoResult,
+    WithdrawRequestResult,
+    WithdrawSettleResult,
+)
 
 # Servers
 from .servers import ServerRestartResult
@@ -191,6 +197,8 @@ __all__ = [
     "ReferreePayment",
     "ReferreeInfo",
     "ReferralsInfoResult",
+    "WithdrawRequestResult",
+    "WithdrawSettleResult",
     # Servers
     "ServerRestartResult",
     # Staff

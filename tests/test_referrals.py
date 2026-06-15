@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 import httpx
 
+from crm_api.exceptions import ConfigError
 from conftest import success_response
 
 
@@ -138,8 +139,104 @@ class TestReferralsAPI:
         }
         async with client_factory(routes) as client:
             result = await client.referrals_info(user_id=123)
-            
+
             assert len(result.referrees) == 1
             assert result.referrees[0].payments_count == 0
             assert result.referrees[0].payments == []
+
+    # --------------- Withdrawals ---------------
+
+    @pytest.mark.asyncio
+    async def test_withdraw_request_created(self, client_factory):
+        routes = {
+            "POST /api/referrals/withdraw/request": lambda req: success_response(
+                {"status": "created", "withdrawal_id": 7, "amount_usd": 12.5, "method": "wallet"}
+            ),
+        }
+        async with client_factory(routes) as client:
+            res = await client.referrals_withdraw_request(user_id=123, method="wallet")
+            assert res.status == "created"
+            assert res.withdrawal_id == 7
+            assert res.amount_usd == 12.5
+            assert res.method == "wallet"
+            assert res.available_usd is None
+
+    @pytest.mark.asyncio
+    async def test_withdraw_request_already_pending(self, client_factory):
+        routes = {
+            "POST /api/referrals/withdraw/request": lambda req: success_response(
+                {"status": "already_pending", "withdrawal_id": 9, "amount_usd": 30.0}
+            ),
+        }
+        async with client_factory(routes) as client:
+            res = await client.referrals_withdraw_request(user_id=123, method="subscription")
+            assert res.status == "already_pending"
+            assert res.withdrawal_id == 9
+
+    @pytest.mark.asyncio
+    async def test_withdraw_request_no_balance(self, client_factory):
+        routes = {
+            "POST /api/referrals/withdraw/request": lambda req: success_response(
+                {"status": "no_balance", "available_usd": 0.0}
+            ),
+        }
+        async with client_factory(routes) as client:
+            res = await client.referrals_withdraw_request(user_id=123, method="wallet")
+            assert res.status == "no_balance"
+            assert res.available_usd == 0.0
+            assert res.withdrawal_id is None
+
+    @pytest.mark.asyncio
+    async def test_withdraw_request_bad_method_raises(self, client_factory):
+        async with client_factory({}) as client:
+            with pytest.raises(ConfigError):
+                await client.referrals_withdraw_request(user_id=123, method="bank")
+
+    @pytest.mark.asyncio
+    async def test_withdraw_settle_partial(self, client_factory):
+        captured = {}
+
+        def _handler(req: httpx.Request):
+            import json
+            captured.update(json.loads(req.content))
+            return success_response(
+                {"status": "settled", "withdrawal_id": 7, "paid_usd": 30.0,
+                 "available_after_usd": 30.0, "method": "subscription"}
+            )
+
+        routes = {"POST /api/referrals/withdraw/settle": _handler}
+        async with client_factory(routes) as client:
+            res = await client.referrals_withdraw_settle(
+                user_id=123, amount_minor=3000, method="subscription", withdrawal_id=7
+            )
+            assert res.status == "settled"
+            assert res.paid_usd == 30.0
+            assert res.available_after_usd == 30.0
+            assert res.method == "subscription"
+            # withdrawal_id передан в теле
+            assert captured["amount_minor"] == 3000
+            assert captured["withdrawal_id"] == 7
+
+    @pytest.mark.asyncio
+    async def test_withdraw_settle_omits_withdrawal_id_when_none(self, client_factory):
+        captured = {}
+
+        def _handler(req: httpx.Request):
+            import json
+            captured.update(json.loads(req.content))
+            return success_response(
+                {"status": "settled", "withdrawal_id": 1, "paid_usd": 10.0,
+                 "available_after_usd": 5.0, "method": "wallet"}
+            )
+
+        routes = {"POST /api/referrals/withdraw/settle": _handler}
+        async with client_factory(routes) as client:
+            await client.referrals_withdraw_settle(user_id=123, amount_minor=1000, method="wallet")
+            assert "withdrawal_id" not in captured
+
+    @pytest.mark.asyncio
+    async def test_withdraw_settle_bad_amount_raises(self, client_factory):
+        async with client_factory({}) as client:
+            with pytest.raises(ConfigError):
+                await client.referrals_withdraw_settle(user_id=123, amount_minor=0, method="wallet")
 

@@ -120,6 +120,8 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 | Endpoint | Python | Go | Request | Response |
 |---|---|---|---|---|
 | `GET /referrals/info?user_id=` | `referrals_info(user_id)` | `ReferralsInfo(ctx, userID)` | — | `ReferralsInfoResult` |
+| `POST /referrals/withdraw/request` | `referrals_withdraw_request(user_id, method)` | `ReferralsWithdrawRequest(ctx, userID, method)` | `{ user_id, method }` (`method`: `wallet`\|`subscription`) | `WithdrawRequestResult { status, withdrawal_id?, amount_usd?, method?, available_usd? }` (поля по ветке status: `no_balance`\|`already_pending`\|`created`) |
+| `POST /referrals/withdraw/settle` | `referrals_withdraw_settle(user_id, amount_minor, method, withdrawal_id?)` | `ReferralsWithdrawSettle(ctx, userID, amountMinor, method, withdrawalID*)` | `{ user_id, amount_minor, method, withdrawal_id? }` (`withdrawal_id` опускается если None/nil) | `WithdrawSettleResult { status, withdrawal_id, paid_usd, available_after_usd, method }` |
 
 ### reply_templates
 | Endpoint | Python | Go | Request | Response |
@@ -230,6 +232,7 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 | `GET /api/payments/invoice/{uuid}` | `client_email`/`referer_id`/`staff_id`/`pay_link`/`pay_url` | nullable | `Optional[T]` | `*T` |
 | `GET /api/payments/invoice/{uuid}` | `payment_method` | non-platega провайдеры | `Optional[str]` | `*string` |
 | `GET /api/payments` | `items[].*` (аналогично) | nullable | `Optional[T]` | `*T` |
+| `POST /api/referrals/withdraw/request` | `withdrawal_id`/`amount_usd`/`method`/`available_usd` | присутствуют по ветке status (created/already_pending vs no_balance) | `Optional[T]` | `*T` (omitempty) |
 
 ## Wire-format request body
 
