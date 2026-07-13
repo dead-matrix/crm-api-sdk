@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import List
 
-from ..models import ProxyCheckItem, ProxyCheckResult, ProxyItem
+from ..exceptions import ConfigError
+from ..models import ProxyBindingsResult, ProxyCheckItem, ProxyCheckResult, ProxyItem
 
 
 class ProxyAPI:
@@ -43,4 +44,23 @@ class ProxyAPI:
                 )
             )
         return items
+
+    async def proxy_bindings(self, user_id: int) -> ProxyBindingsResult:
+        """
+        Возвращает сводку привязок прокси к аккаунтам пользователя: сколько
+        аккаунтов с прокси и без, среднее число аккаунтов на задействованный
+        прокси и сколько прокси не привязаны ни к одному аккаунту.
+        """
+        if user_id <= 0:
+            raise ConfigError("user_id must be positive integer")
+        d = await self._get("/api/proxy/bindings", params={"user_id": int(user_id)}, need_auth=True)
+        return ProxyBindingsResult(
+            total_accounts=int(d.get("total_accounts", 0)),
+            accounts_with_proxy=int(d.get("accounts_with_proxy", 0)),
+            accounts_without_proxy=int(d.get("accounts_without_proxy", 0)),
+            total_proxies=int(d.get("total_proxies", 0)),
+            proxies_with_accounts=int(d.get("proxies_with_accounts", 0)),
+            proxies_without_accounts=int(d.get("proxies_without_accounts", 0)),
+            avg_accounts_per_proxy=float(d.get("avg_accounts_per_proxy", 0.0)),
+        )
 

@@ -4,16 +4,25 @@ from typing import List
 
 from ..models import AccountItem, DayTotal
 from ..exceptions import ConfigError
+from ..utils import parse_dt
 
 
 class AccountsAPI:
     # --------------- Accounts ---------------
 
-    async def accounts_list(self, user_id: int) -> List[AccountItem]:
+    async def accounts_list(self, user_id: int, include_removed: bool = False) -> List[AccountItem]:
+        """
+        Возвращает аккаунты пользователя. include_removed=True просит CRM
+        отдать и удалённые строки (поле removed=True у них); False сохраняет
+        прежнее поведение — только живые аккаунты.
+        """
         if user_id <= 0:
             raise ConfigError("user_id must be positive integer")
         items: List[AccountItem] = []
-        res = await self._get("/api/accounts/list", params={"user_id": int(user_id)}, need_auth=True)
+        params = {"user_id": int(user_id)}
+        if include_removed:
+            params["include_removed"] = "true"
+        res = await self._get("/api/accounts/list", params=params, need_auth=True)
         for a in res or []:
             items.append(
                 AccountItem(
@@ -50,6 +59,9 @@ class AccountsAPI:
                         day=int(a.get("reactions", {}).get("day", 0)),
                         total=int(a.get("reactions", {}).get("total", 0)),
                     ),
+                    first_load=parse_dt(a.get("first_load")),
+                    removed=bool(a.get("removed", False)),
+                    proxy=a.get("proxy"),
                 )
             )
         return items

@@ -51,6 +51,8 @@ class ReferralsAPI:
             ref_total_sum=int(d.get("ref_total_sum", 0)),
             earned_usd=float(d.get("earned_usd", 0.0)),
             available_usd=float(d.get("available_usd", 0.0)),
+            withdrawn_wallet_usd=float(d.get("withdrawn_wallet_usd", 0.0)),
+            withdrawn_subscription_usd=float(d.get("withdrawn_subscription_usd", 0.0)),
             referrees=referrees,
         )
 

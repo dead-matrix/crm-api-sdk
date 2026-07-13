@@ -71,6 +71,11 @@ class PaymentHistoryItem:
     # для исторических записей и других провайдеров). Опционально: старые
     # версии CRM-API поле не возвращают.
     payment_method: Optional[str] = None
+    # Внутренний идентификатор платежа на стороне провайдера. Для platega
+    # это transactionId — именно он нужен оператору при обращении в поддержку
+    # Platega (а не наш uuid). None у черновиков без выставленного счёта и у
+    # старых версий CRM-API, не возвращающих поле.
+    provider_invoice_id: Optional[str] = None
 
 
 @dataclass
@@ -111,6 +116,13 @@ class Sale:
 
     `repeat_purchase`: True если у клиента уже была оплата в этой же категории
     раньше.
+
+    `first_ever_purchase`: True если это самая первая оплата клиента ВООБЩЕ
+    (по всем категориям). Отличается от `not repeat_purchase` для возвратного
+    клиента, покупающего в новой категории. Атрибуцию продаж следует ветвить
+    по нему (а не по repeat_purchase): правило «первому написавшему в диалог»
+    применяется ТОЛЬКО к первой оплате клиента; любая последующая покупка
+    возвратного клиента идёт создателю платёжной ссылки.
     """
     uuid: str
     user_id: int
@@ -119,6 +131,7 @@ class Sale:
     category: str
     repeat_purchase: bool
     date_paid: Optional[datetime]
+    first_ever_purchase: bool = False
 
 
 @dataclass

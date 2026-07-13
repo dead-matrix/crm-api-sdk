@@ -59,6 +59,29 @@ print(get_args(PaymentProvider))
 
 ## Changelog
 
+- **Unreleased — синхронизация с Go SDK (2026-07-13)**
+  - `accounts_list(user_id, include_removed=False)` — опциональный параметр;
+    `AccountItem` дополнен `first_load`, `removed`, `proxy` (ip:port без кредов).
+  - Новый метод `proxy_bindings(user_id)` → `ProxyBindingsResult` — сводка
+    привязок прокси к аккаунтам.
+  - Новый метод `servers_status(user_id, bot_id=1)` → `ServerStatusResult
+    { bound, up }` — опрос готовности воркера после перезапуска.
+  - Reply templates: поле `command` в `ReplyTemplateListItem`/`ReplyTemplateFull`
+    и метод `reply_templates_set_command(template_id, command)` (PATCH) —
+    задать/снять slash-команду быстрого вызова; клиентская нормализация
+    и валидация формы.
+  - `ReferralsInfoResult` дополнен `withdrawn_wallet_usd` /
+    `withdrawn_subscription_usd` — разбивка выведенного по методам.
+  - Платежи: `Sale.first_ever_purchase` (атрибуция по первой оплате клиента),
+    `PaymentHistoryItem.provider_invoice_id` (id платежа у провайдера,
+    для platega — transactionId), новый метод `last_purchase_dates(user_ids)`
+    → `Dict[int, Optional[datetime]]`.
+  - Заморозка подписки: методы `freeze_access` / `unfreeze_access`
+    (`FreezeAccessInput { user_id, bot_id?, idempotency_key? }` →
+    `FreezeAccessResult { user_id, changed, bots }`), поле `frozen`
+    в `DialogItem`/`DialogSearchItem`, поля `frozen`/`frozen_at`/`frozen_expiry`
+    в `UserBotInfo` (get_user).
+
 - **Unreleased** (`docs/SDK_PARITY.md` — детали и migration notes)
   - **BREAKING:** ряд полей в моделях ответа стал nullable, чтобы сервер
     `null` не превращался в строку `"None"` и сохранялся паритет с Go SDK:

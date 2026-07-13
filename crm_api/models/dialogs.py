@@ -11,6 +11,9 @@ class DialogItem:
     has_active_subscription: bool
     status: Optional[str]
     status_color: Optional[str]
+    # frozen — подписка пользователя заморожена (последняя строка Access по
+    # ботам 1/3 = freeze). Доступ снят, сервер убит до разморозки.
+    frozen: bool = False
 
 
 @dataclass
@@ -53,6 +56,8 @@ class DialogSearchItem:
     has_active_subscription: bool
     status: Optional[str]
     status_color: Optional[str]
+    # frozen — см. DialogItem.frozen.
+    frozen: bool = False
 
 
 @dataclass

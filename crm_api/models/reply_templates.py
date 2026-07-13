@@ -56,6 +56,7 @@ REPLY_TEMPLATE_CAPTION_MAX = 4096
 REPLY_TEMPLATE_ALBUM_MIN_ITEMS = 2
 REPLY_TEMPLATE_ALBUM_MAX_ITEMS = 10
 REPLY_TEMPLATE_ITEM_MAX_POS = 9
+REPLY_TEMPLATE_COMMAND_MAX_LENGTH = 64
 
 
 # ───────────────── data classes ─────────────────
@@ -93,6 +94,12 @@ class ReplyTemplateListItem:
     last_used_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    # command — опциональная slash-команда быстрого вызова шаблона из
+    # композера мессенджера (без ведущего "/", в lower-case, напр. "hi").
+    # Глобально уникальна по канонической (по раскладке клавиатуры) форме.
+    # None, если команда не задана. Встроенная "/hi" приветствия — локальна
+    # для мессенджера и здесь никогда не появляется.
+    command: Optional[str] = None
 
 
 @dataclass
@@ -137,6 +144,9 @@ class ReplyTemplateFull:
     items: List[ReplyTemplateItem] = field(default_factory=list)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    # command — см. ReplyTemplateListItem.command. Возвращается get'ом и
+    # PATCH-ответом set_command.
+    command: Optional[str] = None
 
 
 @dataclass

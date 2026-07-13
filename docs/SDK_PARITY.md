@@ -7,7 +7,11 @@
 - Go SDK — пакет `crmapi` (модуль `github.com/dead-matrix/crm-api-go-sdk`).
 - Сервер — CRM-API на FastAPI, маршруты под префиксом `/api`.
 
-**Дата актуализации:** 2026-06-15.
+**Дата актуализации:** 2026-07-13 (синхронизация Python ← Go: accounts
+include_removed/first_load/removed/proxy, proxy_bindings, servers_status,
+reply-templates command + set_command, referrals withdrawn-разбивка,
+payments first_ever_purchase/provider_invoice_id/last_purchase_dates,
+заморозка подписки freeze/unfreeze + frozen-поля).
 
 ## Как читать этот документ
 
@@ -54,7 +58,7 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 ### accounts
 | Endpoint | Python | Go | Request | Response |
 |---|---|---|---|---|
-| `GET /accounts/list?user_id=` | `accounts_list(user_id)` | `AccountsList(ctx, userID)` | — | `[]AccountItem` (`DayTotal` вложенный) |
+| `GET /accounts/list?user_id=&include_removed=` | `accounts_list(user_id, include_removed=False)` | `AccountsList(ctx, userID, includeRemoved)` | — | `[]AccountItem` (`DayTotal` вложенный; + `first_load`, `removed`, `proxy` — ip:port без кредов) |
 
 ### activation
 | Endpoint | Python | Go | Request | Response |
@@ -74,7 +78,7 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 ### dialogs
 | Endpoint | Python | Go | Request | Response |
 |---|---|---|---|---|
-| `GET /dialogs/{department}` | `get_dialogs(department)` | `GetDialogs(ctx, department)` | — | `[]DialogItem` |
+| `GET /dialogs/{department}` | `get_dialogs(department)` | `GetDialogs(ctx, department)` | — | `[]DialogItem` (+ `frozen` — подписка заморожена) |
 | `GET /dialogs/{department}/search?q=&offset=` | `search_dialogs(department, q, offset)` | `SearchDialogs(ctx, department, q, offset)` | — | `DialogSearchResult { dialogs, limit, offset }` |
 | `GET /dialogs/statuses/{department_id}` | `get_statuses(department_id)` | `GetStatuses(ctx, departmentID)` | — | `StatusesResult { department_id, default_status_id, statuses }` |
 | `POST /dialogs/status` | `change_dialog_status(user_id, status_id)` / `clear_dialog_status(user_id)` | `ChangeDialogStatus(ctx, userID, statusID)` / `ClearDialogStatus(ctx, userID)` | `{ user_id, status_id }` (status_id может быть `null`) | `ChangeStatusResult { status: str?/string? }` |
@@ -93,8 +97,9 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 | `POST /payments/invoice/draft` | `create_invoice_draft(data)` | `CreateInvoiceDraft(ctx, input)` | `InvoiceDraftInput { client_id, product_ids, discount_percent, months, provider, payment_method? }` (`payment_method` опц., шлётся только для platega через `exclude_none`/`omitempty`) | `InvoiceDraftResult { uuid, pay_link, status }` |
 | `POST /payments/invoice/issue` | `issue_invoice(data)` | `IssueInvoice(ctx, input)` | `InvoiceIssueInput { uuid, client_email }` | `InvoiceIssueResult { pay_url, status }` |
 | `GET /payments/invoice/{uuid}` | `get_invoice_info(uuid)` | `GetInvoiceInfo(ctx, uuid)` | — | `InvoiceInfoResult` |
-| `GET /payments?user_id=&limit=&offset=` | `get_payments(user_id?, limit, offset)` | `GetPayments(ctx, userID*, limit, offset)` | — | `PaymentsListResult { limit, offset, count, items: []PaymentHistoryItem }` |
-| `GET /payments/sales` | `get_monthly_sales()` | `GetMonthlySales(ctx)` | — | `MonthlySalesResult { month_start, payments: []Sale }` |
+| `GET /payments?user_id=&limit=&offset=` | `get_payments(user_id?, limit, offset)` | `GetPayments(ctx, userID*, limit, offset)` | — | `PaymentsListResult { limit, offset, count, items: []PaymentHistoryItem }` (item включает `provider_invoice_id` — id платежа у провайдера, для platega это transactionId) |
+| `GET /payments/sales` | `get_monthly_sales()` | `GetMonthlySales(ctx)` | — | `MonthlySalesResult { month_start, payments: []Sale }` (`Sale` включает `repeat_purchase` per-category и `first_ever_purchase` — самая первая оплата клиента вообще) |
+| `POST /payments/last-purchase` | `last_purchase_dates(user_ids)` | `LastPurchaseDates(ctx, userIDs)` | `{ user_ids: []int }` | `Dict[int, Optional[datetime]]` / `map[int64]*time.Time` — каждый запрошенный id присутствует (None = не покупал) |
 | `GET /payments/confirm/{uuid}` | `confirm_payment(uuid)` | `ConfirmPayment(ctx, uuid)` | — | `ConfirmPaymentResult { uuid, status }` |
 | `POST /payments/refund/{uuid}` | `refund_payment(uuid, data?)` | `RefundPayment(ctx, uuid, input*)` | `RefundInput { reason?, amount_minor? }` | `RefundResult { uuid, provider, allowed, message, status? }` |
 
@@ -115,11 +120,12 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 |---|---|---|---|---|
 | `POST /proxy/check?user_id=` | `proxy_check(user_id)` | `ProxyCheck(ctx, userID)` | — | `ProxyCheckResult` |
 | `GET /proxy/list?user_id=` | `proxy_list(user_id)` | `ProxyList(ctx, userID)` | — | `[]ProxyItem` |
+| `GET /proxy/bindings?user_id=` | `proxy_bindings(user_id)` | `ProxyBindings(ctx, userID)` | — | `ProxyBindingsResult { total_accounts, accounts_with_proxy, accounts_without_proxy, total_proxies, proxies_with_accounts, proxies_without_accounts, avg_accounts_per_proxy }` |
 
 ### referrals
 | Endpoint | Python | Go | Request | Response |
 |---|---|---|---|---|
-| `GET /referrals/info?user_id=` | `referrals_info(user_id)` | `ReferralsInfo(ctx, userID)` | — | `ReferralsInfoResult` |
+| `GET /referrals/info?user_id=` | `referrals_info(user_id)` | `ReferralsInfo(ctx, userID)` | — | `ReferralsInfoResult` (+ `withdrawn_wallet_usd`/`withdrawn_subscription_usd` — разбивка выведенного по методам; `earned_usd` = всего выведено, всего заработано = earned + available) |
 | `POST /referrals/withdraw/request` | `referrals_withdraw_request(user_id, method)` | `ReferralsWithdrawRequest(ctx, userID, method)` | `{ user_id, method }` (`method`: `wallet`\|`subscription`) | `WithdrawRequestResult { status, withdrawal_id?, amount_usd?, method?, available_usd? }` (поля по ветке status: `no_balance`\|`already_pending`\|`created`) |
 | `POST /referrals/withdraw/settle` | `referrals_withdraw_settle(user_id, amount_minor, method, withdrawal_id?)` | `ReferralsWithdrawSettle(ctx, userID, amountMinor, method, withdrawalID*)` | `{ user_id, amount_minor, method, withdrawal_id? }` (`withdrawal_id` опускается если None/nil) | `WithdrawSettleResult { status, withdrawal_id, paid_usd, available_after_usd, method }` |
 
@@ -129,6 +135,7 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 | `GET /reply-templates?limit=&offset=` | `reply_templates_list(limit, offset)` | `ReplyTemplatesList(ctx, limit, offset)` | — | `[]ReplyTemplateListItem` |
 | `GET /reply-templates/{id}` | `reply_templates_get(id)` | `ReplyTemplatesGet(ctx, templateID)` | — | `ReplyTemplateFull` |
 | `POST /reply-templates` | `reply_templates_create(input)` | `ReplyTemplatesCreate(ctx, input)` | `CreateReplyTemplateInput` | `ReplyTemplateFull` |
+| `PATCH /reply-templates/{id}` | `reply_templates_set_command(id, command)` | `ReplyTemplatesSetCommand(ctx, templateID, command)` | `{ command: str? }` (None/пустая/"/" → снять; клиентская нормализация: trim, срез "/", lower-case; ≤64 симв., только буквы/цифры/`_`) | `ReplyTemplateFull` (creator-only → 403; конфликт уникальности → 409) |
 | `DELETE /reply-templates/{id}` | `reply_templates_delete(id)` | `ReplyTemplatesDelete(ctx, templateID)` | — | `DeleteReplyTemplateResult { id, public_id }` |
 | `GET /reply-templates/{id}/delivery-refs?provider=&providerScope=` | `reply_templates_delivery_refs_list(id, provider, scope)` | `ReplyTemplatesDeliveryRefsList(ctx, templateID, provider, providerScope)` | — | `[]DeliveryRef` |
 | `PUT /reply-templates/{id}/delivery-refs` | `reply_templates_delivery_refs_upsert(id, input)` | `ReplyTemplatesDeliveryRefsUpsert(ctx, templateID, input)` | `UpsertDeliveryRefsInput` | `[]DeliveryRef` |
@@ -143,6 +150,7 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 | Endpoint | Python | Go | Request | Response |
 |---|---|---|---|---|
 | `POST /servers/restart?user_id=&bot_id=` | `servers_restart(user_id, bot_id=1)` | `ServersRestart(ctx, userID, botID)` | — | `ServerRestartResult { message }` |
+| `GET /servers/status?user_id=&bot_id=` | `servers_status(user_id, bot_id=1)` | `ServersStatus(ctx, userID, botID)` | — | `ServerStatusResult { bound, up }` (готовность воркера — для опроса фактического завершения перезапуска) |
 
 ### staff
 | Endpoint | Python | Go | Request | Response |
@@ -155,6 +163,8 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 |---|---|---|---|---|
 | `POST /access/add` | `add_access(input)` | `AddAccess(ctx, input)` | `AddAccessInput` (опциональные поля опускаются — `exclude_none` / `omitempty`) | `AddAccessResult` |
 | `POST /access/manage` | `manage_access(input)` | `ManageAccess(ctx, input)` | `AccessManageInput { user_id, bot_id, op, features?, days?, end?, note?, idempotency_key? }` (опц. поля опускаются; повтор с тем же `idempotency_key` не дублирует операцию; `op` нормализуется в нижний регистр; доступ только staff с департаментом sales) | `AccessManageResult { user_id, bot_id, op, action, access, access_end, crm_access_id }` |
+| `POST /access/freeze` | `freeze_access(input)` | `FreezeAccess(ctx, input)` | `FreezeAccessInput { user_id, bot_id?, idempotency_key? }` (без bot_id — все боты; 1=основной, 3=граббер) | `FreezeAccessResult { user_id, changed, bots }` (`changed` ← серверный `frozen`) |
+| `POST /access/unfreeze` | `unfreeze_access(input)` | `UnfreezeAccess(ctx, input)` | тот же `FreezeAccessInput` | `FreezeAccessResult` (`changed` ← серверный `unfrozen`; сервер бэкенда НЕ трогает) |
 | `GET /users/{user_id}/subscriptions/history` | `subscriptions_history(user_id)` | `SubscriptionsHistory(ctx, userID)` | — | `SubscriptionsHistoryResult { user_id, history: []AccessHistoryItem }` |
 | `GET /access/definitions` | `access_definitions()` | `AccessDefinitions(ctx)` | — | `AccessDefinitionsResult { main, poster }` |
 | `POST /subscriptions/transfer-link?user_id=&bot_id=` | `subscriptions_transfer_link(user_id, bot_id)` | `SubscriptionsTransferLink(ctx, userID, botID)` | — | `TransferLinkResult` |
@@ -173,7 +183,7 @@ Webhook-эндпоинты CRM-API наружу не выставляются и
 | Endpoint | Python | Go | Request | Response |
 |---|---|---|---|---|
 | `GET /users?bot_id=&limit=&offset=` | `list_users(bot_id, limit, offset)` | `ListUsers(ctx, botID, limit, offset)` | — | `ListUsersResult` |
-| `GET /users/{user_id}` | `get_user(user_id)` | `GetUser(ctx, userID)` | — | `GetUserResult` |
+| `GET /users/{user_id}` | `get_user(user_id)` | `GetUser(ctx, userID)` | — | `GetUserResult` (`UserBotInfo` включает `frozen`/`frozen_at`/`frozen_expiry` — снапшот дат окончания по фичам на момент заморозки) |
 | `POST /users` | `create_user(input)` | `CreateUser(ctx, input)` | `CreateUserInput` | `CreateUserResult` (идемпотентно) |
 | `PUT /users/{user_id}` | `update_user(user_id, input)` | `UpdateUser(ctx, userID, input)` | `UpdateUserInput` | `UpdateUserResult` |
 | `POST /users/{user_id}/access/extend?bot_id=&days=` | `extend_user_access(user_id, bot_id, days)` | `ExtendUserAccess(ctx, userID, botID, days)` | — | `ExtendAccessResult` |

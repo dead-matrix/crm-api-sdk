@@ -7,6 +7,7 @@ from .models import (
     CreateUserInput,
     UpdateUserInput,
     AddAccessInput,
+    FreezeAccessInput,
     PaymentsCalculateInput,
     InvoiceDraftInput,
     InvoiceIssueInput,
@@ -47,6 +48,7 @@ from .models import (
     # Prompt
     PromptUpdateResult,
     # Proxy
+    ProxyBindingsResult,
     ProxyCheckItem,
     ProxyCheckResult,
     ProxyItem,
@@ -58,6 +60,7 @@ from .models import (
     WithdrawSettleResult,
     # Servers
     ServerRestartResult,
+    ServerStatusResult,
     # Staff
     StaffInfo,
     StaffListItem,
@@ -75,6 +78,7 @@ from .models import (
     AccessPaymentRef,
     AccessStaffRef,
     AccessHistoryItem,
+    FreezeAccessResult,
     SubscriptionsHistoryResult,
     AccessDefinitionsResult,
     TransferLinkResult,
@@ -108,6 +112,7 @@ __all__ = [
     "CreateUserInput",
     "UpdateUserInput",
     "AddAccessInput",
+    "FreezeAccessInput",
     "PaymentsCalculateInput",
     "InvoiceDraftInput",
     "InvoiceIssueInput",
@@ -148,6 +153,7 @@ __all__ = [
     # Prompt
     "PromptUpdateResult",
     # Proxy
+    "ProxyBindingsResult",
     "ProxyCheckItem",
     "ProxyCheckResult",
     "ProxyItem",
@@ -159,6 +165,7 @@ __all__ = [
     "WithdrawSettleResult",
     # Servers
     "ServerRestartResult",
+    "ServerStatusResult",
     # Staff
     "StaffInfo",
     "StaffListItem",
@@ -176,6 +183,7 @@ __all__ = [
     "AccessPaymentRef",
     "AccessStaffRef",
     "AccessHistoryItem",
+    "FreezeAccessResult",
     "SubscriptionsHistoryResult",
     "AccessDefinitionsResult",
     "TransferLinkResult",

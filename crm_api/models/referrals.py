@@ -25,6 +25,13 @@ class ReferreeInfo:
 
 @dataclass
 class ReferralsInfoResult:
+    """
+    earned_usd — Σ выплаченных комиссий = всего ВЫВЕДЕНО (USD).
+    available_usd — текущий остаток к выводу. «Всего заработано» потребитель
+    считает как earned_usd + available_usd.
+    withdrawn_wallet_usd / withdrawn_subscription_usd — разбивка выведенного
+    по методам (сумма ≈ earned_usd).
+    """
     ref_link: str
     percent: int
     registrations: int
@@ -33,6 +40,8 @@ class ReferralsInfoResult:
     earned_usd: float
     available_usd: float
     referrees: List[ReferreeInfo]
+    withdrawn_wallet_usd: float = 0.0
+    withdrawn_subscription_usd: float = 0.0
 
 
 @dataclass

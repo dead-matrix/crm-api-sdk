@@ -28,6 +28,14 @@ class AccountItem:
     tagged: DayTotal
     views: DayTotal
     reactions: DayTotal
+    # first_load — дата первой загрузки аккаунта (CRM отдаёт наивный ISO-datetime).
+    first_load: Optional[datetime] = None
+    # removed — аккаунт удалён. Заполняется только при include_removed=True
+    # (без него CRM такие строки не отдаёт вовсе).
+    removed: bool = False
+    # proxy — привязанный прокси аккаунта как ip:port (без логина/пароля);
+    # None, если прокси не задан. CRM санитизирует на своей стороне.
+    proxy: Optional[str] = None
 
 
 # -------- Profile --------

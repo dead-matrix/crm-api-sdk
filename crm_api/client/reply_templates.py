@@ -35,6 +35,7 @@ from ..models import (
     REPLY_TEMPLATE_ALBUM_MAX_ITEMS,
     REPLY_TEMPLATE_ALBUM_MIN_ITEMS,
     REPLY_TEMPLATE_CAPTION_MAX,
+    REPLY_TEMPLATE_COMMAND_MAX_LENGTH,
     REPLY_TEMPLATE_ITEM_MAX_POS,
     REPLY_TEMPLATE_ITEM_TYPE_TEXT,
     REPLY_TEMPLATE_ITEM_TYPES,
@@ -51,6 +52,40 @@ from ..utils import parse_dt
 _PUBLIC_ID_PATTERN = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
+
+# Зеркалит серверный regex команды: буквы (любой скрипт, включая кириллицу),
+# цифры, подчёркивание. Применяется к уже очищенному токену (ведущий "/"
+# срезан, trim, lower-case). В Python `\w` с Unicode-семантикой покрывает
+# ровно [\p{L}\p{N}_].
+_COMMAND_PATTERN = re.compile(r"^\w+$", re.UNICODE)
+
+
+def _normalize_command(command: Optional[str]) -> Optional[str]:
+    """
+    Очистка + валидация команды для set_command. None / пустая строка / "/"
+    → None (означает «снять команду»). Иначе срезаем ведущий "/", тримим,
+    приводим к lower-case и валидируем длину + набор символов — зеркалит
+    серверную _normalize_command_input, чтобы кривое значение падало быстро,
+    без round-trip. Канонизация по раскладке клавиатуры (для уникальности)
+    живёт на сервере (и в фронте мессенджера для матчинга); SDK валидирует
+    только форму.
+    """
+    if command is None:
+        return None
+    s = command.strip()
+    if s.startswith("/"):
+        s = s[1:]
+    s = s.strip()
+    if not s:
+        return None
+    s = s.lower()
+    if len(s) > REPLY_TEMPLATE_COMMAND_MAX_LENGTH:
+        raise ConfigError(
+            f"command must be at most {REPLY_TEMPLATE_COMMAND_MAX_LENGTH} characters"
+        )
+    if not _COMMAND_PATTERN.match(s):
+        raise ConfigError("command may contain only letters, digits and underscore")
+    return s
 
 
 class ReplyTemplatesAPI:
@@ -150,6 +185,33 @@ class ReplyTemplatesAPI:
         data = await self._post(
             "/api/reply-templates",
             payload,
+            need_auth=True,
+        )
+        return _map_full(data)
+
+    async def reply_templates_set_command(
+        self,
+        template_id: int,
+        command: Optional[str],
+    ) -> ReplyTemplateFull:
+        """
+        Задать или снять slash-команду быстрого вызова шаблона.
+
+        command=None (или пустая строка / только "/") — СНИМАЕТ команду;
+        непустое значение — задаёт. Значение нормализуется здесь (trim,
+        срез ведущего "/", lower-case) и валидируется по форме перед
+        PATCH. Сервер дополнительно держит creator-only авторизацию
+        (HTTP 403 → AuthError) и глобальную уникальность по канонической
+        (по раскладке) форме (HTTP 409 → ApiError). Возвращает обновлённый
+        полный шаблон.
+        """
+        if template_id <= 0:
+            raise ConfigError("template_id must be positive integer")
+
+        normalized = _normalize_command(command)
+        data = await self._patch(
+            f"/api/reply-templates/{template_id}",
+            {"command": normalized},
             need_auth=True,
         )
         return _map_full(data)
@@ -327,6 +389,7 @@ def _map_list_item(raw: Dict[str, Any]) -> ReplyTemplateListItem:
         last_used_at=parse_dt(raw.get("lastUsedAt")),
         created_at=parse_dt(raw.get("createdAt")),
         updated_at=parse_dt(raw.get("updatedAt")),
+        command=raw.get("command"),
     )
 
 
@@ -341,6 +404,7 @@ def _map_full(raw: Dict[str, Any]) -> ReplyTemplateFull:
         items=[_map_item(it) for it in items_raw],
         created_at=parse_dt(raw.get("createdAt")),
         updated_at=parse_dt(raw.get("updatedAt")),
+        command=raw.get("command"),
     )
 
 

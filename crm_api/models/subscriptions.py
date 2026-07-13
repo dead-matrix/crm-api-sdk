@@ -39,6 +39,19 @@ class SubscriptionsHistoryResult:
 
 
 @dataclass
+class FreezeAccessResult:
+    """
+    Результат POST /api/access/freeze|unfreeze. changed=True, если хотя бы
+    у одного бота состояние реально изменилось (заморожен при freeze /
+    разморожен при unfreeze). bots — пер-ботовая детализация (opaque,
+    для логов/UI).
+    """
+    user_id: int
+    changed: bool
+    bots: Dict[str, Any]
+
+
+@dataclass
 class AccessDefinitionsResult:
     main: Dict[str, str]
     poster: Dict[str, str]

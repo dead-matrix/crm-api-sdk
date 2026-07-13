@@ -78,6 +78,18 @@ class AccessManageInput(BaseModel):
         return v.strip().lower() if isinstance(v, str) else v
 
 
+class FreezeAccessInput(BaseModel):
+    """
+    Входная модель для POST /api/access/freeze|unfreeze.
+
+    Без bot_id — во ВСЕХ поддержанных ботах (осн. + граббер); с bot_id —
+    только этот бот (1=основной, 3=граббер). Идемпотентно (idempotency_key).
+    """
+    user_id: int = Field(ge=1)
+    bot_id: Optional[int] = Field(default=None, ge=1)
+    idempotency_key: Optional[str] = Field(default=None, max_length=64)
+
+
 # -------- Payments inputs --------
 
 class PaymentsCalculateInput(BaseModel):

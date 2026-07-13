@@ -26,6 +26,7 @@ class DialogsAPI:
                     user_id=int(r["user_id"]),
                     full_name=r.get("full_name"),
                     has_active_subscription=bool(r.get("has_active_subscription")),
+                    frozen=bool(r.get("frozen", False)),
                     status=r.get("status"),
                     status_color=r.get("status_color"),
                 )
@@ -111,6 +112,7 @@ class DialogsAPI:
                     user_id=int(r["user_id"]),
                     full_name=r.get("full_name"),
                     has_active_subscription=bool(r.get("has_active_subscription")),
+                    frozen=bool(r.get("frozen", False)),
                     # status/status_color nullable: передаём как есть, не оборачиваем
                     # в str(), иначе None превратится в строку "None".
                     status=r.get("status"),

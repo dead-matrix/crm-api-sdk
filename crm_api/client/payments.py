@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from ..exceptions import ConfigError
@@ -147,6 +148,7 @@ class PaymentsAPI:
                     description=p.get("description"),
                     items=p.get("items") or [],
                     provider=p.get("provider"),
+                    provider_invoice_id=p.get("provider_invoice_id"),
                     pay_link=p.get("pay_link"),
                     pay_url=p.get("pay_url"),
                     date_create=parse_dt(p.get("date_create")),
@@ -183,6 +185,7 @@ class PaymentsAPI:
                     amount_minor=int(it["amount_minor"]),
                     category=str(it["category"]),
                     repeat_purchase=bool(it.get("repeat_purchase", False)),
+                    first_ever_purchase=bool(it.get("first_ever_purchase", False)),
                     date_paid=parse_dt(it.get("date_paid")),
                 )
             )
@@ -190,6 +193,38 @@ class PaymentsAPI:
             month_start=parse_dt(d.get("month_start")),
             payments=sales,
         )
+
+    async def last_purchase_dates(
+        self, user_ids: List[int]
+    ) -> Dict[int, Optional[datetime]]:
+        """
+        Для каждого переданного пользователя (Telegram / внешний id) — дата
+        его последней ОПЛАЧЕННОЙ покупки, либо None, если он не покупал.
+        КАЖДЫЙ запрошенный id присутствует в результате (None = не покупал).
+        Обслуживает шедулер дожима лидов в мессенджере, который пропускает
+        недавно купивших. POST /api/payments/last-purchase,
+        body {"user_ids": [...]}.
+        """
+        out: Dict[int, Optional[datetime]] = {}
+        if not user_ids:
+            return out
+        d = await self._post(
+            "/api/payments/last-purchase",
+            {"user_ids": [int(u) for u in user_ids]},
+            need_auth=True,
+        )
+        # data — {"<user_id>": "<iso>" | null}.
+        for k, v in (d or {}).items():
+            try:
+                uid = int(k)
+            except (TypeError, ValueError):
+                continue
+            out[uid] = parse_dt(v) if v else None
+        # Защитно: эндпоинт и так возвращает каждый запрошенный id, но не
+        # оставляем запрошенный вызывающим id отсутствующим в словаре.
+        for u in user_ids:
+            out.setdefault(int(u), None)
+        return out
 
     async def confirm_payment(self, uuid: str) -> ConfirmPaymentResult:
         d = await self._get(f"/api/payments/confirm/{uuid}", params=None, need_auth=True)

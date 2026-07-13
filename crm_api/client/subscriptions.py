@@ -8,6 +8,8 @@ from ..models import (
     AddAccessResult,
     AccessManageInput,
     AccessManageResult,
+    FreezeAccessInput,
+    FreezeAccessResult,
     AccessPaymentRef,
     AccessStaffRef,
     AccessHistoryItem,
@@ -51,6 +53,33 @@ class SubscriptionsAPI:
             access=res.get("access"),
             access_end=parse_dt(res.get("access_end")),
             crm_access_id=res.get("crm_access_id"),
+        )
+
+    async def freeze_access(self, data: FreezeAccessInput) -> FreezeAccessResult:
+        """
+        Заморозить подписку пользователя: фиксирует доступы в CRM, снимает
+        доступ и убивает сервер бэкенда (как при завершении подписки).
+        Идемпотентно (idempotency_key).
+        """
+        payload = data.model_dump(mode="json", exclude_none=True)
+        res = await self._post("/api/access/freeze", payload, need_auth=True)
+        return FreezeAccessResult(
+            user_id=int(res["user_id"]),
+            changed=bool(res.get("frozen")),
+            bots=res.get("bots") or {},
+        )
+
+    async def unfreeze_access(self, data: FreezeAccessInput) -> FreezeAccessResult:
+        """
+        Разморозить подписку: восстанавливает доступы с сохранением остатка
+        времени по каждой фиче, снимает флаг заморозки. Сервер НЕ трогает.
+        """
+        payload = data.model_dump(mode="json", exclude_none=True)
+        res = await self._post("/api/access/unfreeze", payload, need_auth=True)
+        return FreezeAccessResult(
+            user_id=int(res["user_id"]),
+            changed=bool(res.get("unfrozen")),
+            bots=res.get("bots") or {},
         )
 
     async def subscriptions_history(self, user_id: int) -> SubscriptionsHistoryResult:

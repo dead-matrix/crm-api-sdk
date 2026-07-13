@@ -304,6 +304,16 @@ class BaseCRMClient:
     ) -> Dict[str, Any]:
         return await self._request_json("PUT", path, params=params, json_body=json_body, need_auth=need_auth)
 
+    async def _patch(
+        self,
+        path: str,
+        json_body: Dict[str, Any] | None,
+        *,
+        need_auth: bool,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        return await self._request_json("PATCH", path, params=params, json_body=json_body, need_auth=need_auth)
+
     async def _delete(
         self,
         path: str,

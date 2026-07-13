@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -13,6 +13,14 @@ class UserBotInfo:
     refer: Optional[str]
     access: Optional[Any]
     access_end: Optional[datetime]
+    # Поля заморозки подписки — заполняются, когда последняя строка Access
+    # по этому боту action="freeze". frozen — флаг состояния; frozen_at —
+    # момент заморозки; frozen_expiry — снапшот дат окончания по фичам
+    # {feature: end_iso}, снятый в момент заморозки (остаток дней по фиче =
+    # frozen_expiry[feat] − frozen_at, т.к. замороженный период не тикает).
+    frozen: bool = False
+    frozen_at: Optional[datetime] = None
+    frozen_expiry: Optional[Dict[str, str]] = None
 
 
 @dataclass

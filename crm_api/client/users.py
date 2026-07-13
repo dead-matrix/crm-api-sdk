@@ -117,6 +117,9 @@ class UsersAPI:
                     refer=item.get("refer"),
                     access=item.get("access"),
                     access_end=parse_dt(item.get("access_end")),
+                    frozen=bool(item.get("frozen", False)),
+                    frozen_at=parse_dt(item.get("frozen_at")),
+                    frozen_expiry=item.get("frozen_expiry"),
                 )
             )
         return GetUserResult(
