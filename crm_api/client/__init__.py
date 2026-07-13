@@ -19,6 +19,7 @@ from .reply_templates import ReplyTemplatesAPI
 from .profile import ProfileAPI
 from .subscriptions import SubscriptionsAPI
 from .activation import ActivationAPI
+from .bot_blocks import BotBlocksAPI
 
 
 
@@ -42,6 +43,7 @@ class CRMApiClient(
     ProfileAPI,
     SubscriptionsAPI,
     ActivationAPI,
+    BotBlocksAPI,
 ):
     """Комбинированный клиент CRM-API: базовый клиент + API по доменам."""
 

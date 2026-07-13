@@ -101,6 +101,13 @@ from .activation import (
     ActivationRedeemResult,
 )
 
+# Bot blocks (per-bot флаги «пользователь заблокировал бота»)
+from .bot_blocks import (
+    BotBlocksListResult,
+    BotBlockUnblockResult,
+    BotBlockReportResult,
+)
+
 # Tasks
 from .tasks import TaskListItem, TaskInfoResult, TaskLogResult, ActiveTasksResult
 
@@ -227,6 +234,10 @@ __all__ = [
     # Activation
     "ActivationRedeemInput",
     "ActivationRedeemResult",
+    # Bot blocks
+    "BotBlocksListResult",
+    "BotBlockUnblockResult",
+    "BotBlockReportResult",
     # Tasks
     "TaskListItem",
     "TaskInfoResult",
